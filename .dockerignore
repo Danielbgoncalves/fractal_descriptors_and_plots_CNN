@@ -1,0 +1,19 @@
+__pycache__/
+*.pyc
+*.pyo
+
+.git/
+.gitignore
+
+entradas_para_testes/
+saida/
+
+# POR ENQUANTO
+#model/
+
+*.csv
+*.png
+*.jpg
+
+venv/
+.env

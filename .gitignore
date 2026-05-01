@@ -1,0 +1,51 @@
+entradas_para_testes/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+#  A parte importante de Benchmarck está em validação também
+Benchmarck/
+
+# Python cache / env
+__pycache__/
+*.pytest_cache/
+*.py[cod]
+*$py.class
+.npy
+
+# Virtual environments
+venv/
+env/
+/.venv/
+Venv/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Images and large data
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+*.bmp
+*.npy
+*.npz
+
+# Logs and results
+*.log
+resultados_testes.csv
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
