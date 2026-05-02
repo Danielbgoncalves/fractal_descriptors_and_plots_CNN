@@ -146,7 +146,7 @@ def run_kfold(dataset_path, dataset_type, class_names, backbone="mobilenet", see
         model = criar_modelo(
             backbone=backbone,
             num_classes=len(class_names),
-            pretrained=True
+            pretrained='DEFAULT'
         ).to(DEVICE)
 
         model, best_model_fold_state, history, metrics = train_one_fold(
@@ -198,7 +198,7 @@ def run_kfold(dataset_path, dataset_type, class_names, backbone="mobilenet", see
     best_model = criar_modelo(
         backbone=backbone,
         num_classes=len(class_names),
-        pretrained=False
+        pretrained=None
     ).to(DEVICE)
     best_model.load_state_dict(best_model_state)
 

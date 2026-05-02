@@ -1,3 +1,7 @@
+import warnings
+
+warnings.filterwarnings("ignore") # Ignora todos os avisos chatos de depreciação de bibliotecas
+
 from metrics import mostrar_metricas, metrics_to_csv
 from model import carregar_modelo
 from train import train_seeds
@@ -8,11 +12,11 @@ from train import *
 
 displasia_dataset_path = '../datasets/dataset_displasia/treino_e_validacao'
 displasia_classes = ['healthy', 'severe']
+displasia_test_dir = '../datasets/dataset_displasia/teste'
+
 
 lung_dataset_path = '../datasets/dataset_pulmao/treino_e_validacao'
 lung_classes = ['aca_md', 'nor', 'scc_md']
-
-displasia_test_dir = '../datasets/dataset_displasia/teste'
 lung_test_dir = '../datasets/dataset_pulmao/teste'
 
 ####### Testando com o dataset displasia #######
