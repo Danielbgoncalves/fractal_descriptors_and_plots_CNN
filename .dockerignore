@@ -7,6 +7,9 @@ __pycache__/
 
 entradas_para_testes/
 saida/
+datasets/
+representations/
+validacoes/
 
 # POR ENQUANTO
 #model/
