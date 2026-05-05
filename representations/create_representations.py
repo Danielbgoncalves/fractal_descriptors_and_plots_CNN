@@ -83,9 +83,19 @@ def create_representations(features_path, out_path, plots=['RP']):
 
     print(f'Salvo com sucesso em {out_path}')
 
+if __name__ == "__main__":
+    import sys
+    import pandas as pd
 
-csv_descritores = r"representations\teste.csv"
-create_representations(csv_descritores, "saida3")
+    csv_descritores = sys.argv[1]
+    dir_out = sys.argv[2]
+
+    create_representations(csv_descritores, dir_out)
+
+
+
+# # csv_descritores = r"representations\teste.csv"
+# # create_representations(csv_descritores, "saida3")
 
     
 
