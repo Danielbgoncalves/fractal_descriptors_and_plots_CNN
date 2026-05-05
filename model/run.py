@@ -2,13 +2,13 @@ import warnings
 
 warnings.filterwarnings("ignore") # Ignora todos os avisos chatos de depreciação de bibliotecas
 
-from metrics import mostrar_metricas, metrics_to_csv
-from model import carregar_modelo
-from train import train_seeds
+from .metrics import mostrar_metricas, metrics_to_csv
+from .model import carregar_modelo
+from .train import train_seeds
 
-from utils import *
-from dataset import *
-from train import *
+from .utils import *
+from .dataset import *
+from .train import *
 
 displasia_dataset_path = '../datasets/dataset_displasia/treino_e_validacao'
 displasia_classes = ['healthy', 'severe'] # 0=healthy, 1=severe
