@@ -11,12 +11,12 @@ from dataset import *
 from train import *
 
 displasia_dataset_path = '../datasets/dataset_displasia/treino_e_validacao'
-displasia_classes = ['healthy', 'severe']
+displasia_classes = ['healthy', 'severe'] # 0=healthy, 1=severe
 displasia_test_dir = '../datasets/dataset_displasia/teste'
 
 
 lung_dataset_path = '../datasets/dataset_pulmao/treino_e_validacao'
-lung_classes = ['aca_md', 'nor', 'scc_md']
+lung_classes = ['aca_md', 'nor', 'scc_md'] #0=aca_md, 1=nor, 2=scc_md
 lung_test_dir = '../datasets/dataset_pulmao/teste'
 
 ####### Testando com o dataset displasia #######
