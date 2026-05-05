@@ -11,6 +11,7 @@ import torch
 import numpy as np
 from PIL import Image
 import matplotlib as plt
+import torch.nn.functional as F
 from captum.attr import IntegratedGradients, visualization as viz
 
 from model.model import carregar_modelo
@@ -18,7 +19,7 @@ from model.utils import transform
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-def explain_2D(weigths_path, backbone, num_classes, img_path, target_class):
+def explain_2D(weigths_path, backbone, num_classes, img_path, target_class, classes):
     
     # Carregar Modelo
     model = carregar_modelo(backbone, num_classes=num_classes, path_weights=weigths_path)
@@ -29,6 +30,18 @@ def explain_2D(weigths_path, backbone, num_classes, img_path, target_class):
     img_pil = Image.open(img_path).convert('RGB')
     input_tensor = transform(img_pil).unsqueeze(0).to(DEVICE)
     input_tensor.requires_grad = True
+
+    with torch.no_grad:
+        output_bruto = model(input_tensor)
+        probabilidades = F.softmax(output_bruto, dim=1)[0]
+        confianca, classe_pred = torch.max(probabilidades, dim=0)
+        
+        confianca_pct = confianca.item() * 100
+        classe_pred_idx = classe_pred.item()
+
+        classe_predita = classes[classe_pred_idx]
+        classe_real = classes[target_class]
+        
 
     # Calcula atribuições com IG
     ig = IntegratedGradients(model)
@@ -50,7 +63,10 @@ def explain_2D(weigths_path, backbone, num_classes, img_path, target_class):
     img_fundo = std * img_tensor + mean
     img_fundo = np.clip(img_fundo, 0, 1)
 
-    print("Gerando mapa de calor...")
+    # Vizualização
+    print(f'o modelo previu a classe {classe_predita} com {confianca_pct:.2f}%de confiança e o correto é {classe_real}')
+
+    titulo_grafico = f"Alvo XAI: {classe_real} | Predição: {classe_pred} ({confianca_pct:.2f}%)"
 
     fig, axis = viz.visualize_image_attr(
         attr_np,                     
@@ -58,7 +74,7 @@ def explain_2D(weigths_path, backbone, num_classes, img_path, target_class):
         method="blended_heat_map",   
         sign="positive",             
         show_colorbar=True,
-        title=f"Atribuição para Classe {target_class}",
+        title=titulo_grafico,
         use_pyplot=True
     )
 
