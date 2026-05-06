@@ -4,7 +4,7 @@ results_kfold/
 *.pyc
 *.pyo
 *.pyd
-*pth
+*.pth
 
 #  A parte importante de Benchmarck está em validação também
 Benchmarck/
