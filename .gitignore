@@ -5,6 +5,7 @@ results_kfold/
 *.pyo
 *.pyd
 *.pth
+*.bat
 
 #  A parte importante de Benchmarck está em validação também
 Benchmarck/
