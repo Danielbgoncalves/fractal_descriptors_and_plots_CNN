@@ -1,8 +1,10 @@
 entradas_para_testes/
 __pycache__/
+results_kfold/
 *.pyc
 *.pyo
 *.pyd
+*pth
 
 #  A parte importante de Benchmarck está em validação também
 Benchmarck/
