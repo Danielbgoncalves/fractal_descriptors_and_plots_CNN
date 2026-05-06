@@ -1,6 +1,6 @@
 import torch.nn as nn
 
-from utils import *
+from .utils import *
 
 def criar_modelo(backbone: str, num_classes: int, pretrained='DEFAULT'):
     backbone = backbone.lower()

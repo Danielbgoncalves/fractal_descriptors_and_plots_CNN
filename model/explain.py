@@ -10,7 +10,7 @@ canais, enquanto no caso 1 a explicação é numa imagem 2D apenas.
 import torch
 import numpy as np
 from PIL import Image
-import matplotlib as plt
+import matplotlib.pyplot as plt
 import torch.nn.functional as F
 from captum.attr import IntegratedGradients, visualization as viz
 
@@ -31,7 +31,9 @@ def explain_2D(weigths_path, backbone, num_classes, img_path, target_class, clas
     input_tensor = transform(img_pil).unsqueeze(0).to(DEVICE)
     input_tensor.requires_grad = True
 
-    with torch.no_grad:
+    print(torch)
+
+    with torch.no_grad():
         output_bruto = model(input_tensor)
         probabilidades = F.softmax(output_bruto, dim=1)[0]
         confianca, classe_pred = torch.max(probabilidades, dim=0)
@@ -46,7 +48,7 @@ def explain_2D(weigths_path, backbone, num_classes, img_path, target_class, clas
     # Calcula atribuições com IG
     ig = IntegratedGradients(model)
     attributions, delta = ig.attribute(input_tensor, target=target_class,
-                                       n_step=50, return_convergence_delta=True)
+                                       n_steps=50, return_convergence_delta=True)
     
 
     attr_tensor = attributions.squeeze().cpu().detach()
@@ -66,7 +68,7 @@ def explain_2D(weigths_path, backbone, num_classes, img_path, target_class, clas
     # Vizualização
     print(f'o modelo previu a classe {classe_predita} com {confianca_pct:.2f}%de confiança e o correto é {classe_real}')
 
-    titulo_grafico = f"Alvo XAI: {classe_real} | Predição: {classe_pred} ({confianca_pct:.2f}%)"
+    titulo_grafico = f"Alvo XAI: {classe_real} | Predição: {classe_predita} ({confianca_pct:.2f}%)"
 
     fig, axis = viz.visualize_image_attr(
         attr_np,                     
@@ -81,10 +83,11 @@ def explain_2D(weigths_path, backbone, num_classes, img_path, target_class, clas
 
 if __name__ == "__main__":
 
-    weigths_path = "models/42/mobilenet_originais.pth"
+    weigths_path = r"C:\Users\IFTM-ITB\Desktop\EnsembleFractal\models\42\mobilenet_F-RecPlot.pth"
     backbone = 'mobilenet'
     num_classes = 2
-    img_path = "seila/completa/na/hora"
+    img_path = r"C:\Users\IFTM-ITB\Desktop\EnsembleFractal\datasets\dataset_displasia\teste\severe\F-RecPlot\2.png"
     target_class = 1 #severe
+    classes = ["healthy", "severe"]
 
-    explain_2D(weigths_path, backbone, num_classes, img_path, target_class)
+    explain_2D(weigths_path, backbone, num_classes, img_path, target_class, classes)
