@@ -66,7 +66,7 @@ def explain_2D(weigths_path, backbone, num_classes, img_path, target_class, clas
     img_fundo = np.clip(img_fundo, 0, 1)
 
     # Vizualização
-    print(f'o modelo previu a classe {classe_predita} com {confianca_pct:.2f}%de confiança e o correto é {classe_real}')
+    print(f'o modelo previu a classe {classe_predita} com {confianca_pct:.2f}% de confiança e o correto é {classe_real}')
 
     titulo_grafico = f"Alvo XAI: {classe_real} | Predição: {classe_predita} ({confianca_pct:.2f}%)"
 
@@ -83,10 +83,10 @@ def explain_2D(weigths_path, backbone, num_classes, img_path, target_class, clas
 
 if __name__ == "__main__":
 
-    weigths_path = r"C:\Users\IFTM-ITB\Desktop\EnsembleFractal\models\42\mobilenet_F-RecPlot.pth"
+    weigths_path = r"C:\Users\IFTM-ITB\Desktop\EnsembleFractal\models\42\mobilenet_originais.pth"
     backbone = 'mobilenet'
     num_classes = 2
-    img_path = r"C:\Users\IFTM-ITB\Desktop\EnsembleFractal\datasets\dataset_displasia\teste\severe\F-RecPlot\2.png"
+    img_path = r"C:\Users\IFTM-ITB\Desktop\EnsembleFractal\datasets\dataset_displasia\teste\severe\originais\12.tif"
     target_class = 1 #severe
     classes = ["healthy", "severe"]
 
