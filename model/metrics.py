@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import torch
+import os
 import torch.nn.functional as F
 from sklearn.metrics import (
     accuracy_score,
@@ -9,7 +10,7 @@ from sklearn.metrics import (
     confusion_matrix
 )
 
-from utils import DEVICE
+from .utils import DEVICE
 
 
 def mostrar_metricas(nome_cenario, y_true, y_pred):
@@ -38,7 +39,7 @@ def mostrar_metricas(nome_cenario, y_true, y_pred):
         "specificity_macro": specificity
     }
 
-def metrics_to_csv(seeds, results, test_loader):
+def metrics_to_csv(seeds, results, test_loader, output_dir):
     all_results = []  # Aqui vamos armazenar todas as métricas para CSV
 
     # Definir os cenários
@@ -115,4 +116,5 @@ def metrics_to_csv(seeds, results, test_loader):
 
     # Criar DataFrame e salvar CSV
     df_results = pd.DataFrame(all_results)
-    df_results.to_csv("resultados_testes.csv", index=False)
+    output_path = os.path.join(output_dir, "resultados_testes.csv")
+    df_results.to_csv(output_path, index=False)

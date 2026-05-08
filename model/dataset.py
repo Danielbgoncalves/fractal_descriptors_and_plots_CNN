@@ -43,7 +43,7 @@ class EnsembleTestDataset(Dataset):
 
         for label_idx, class_name in enumerate(class_names):
             path_orig = self.root / class_name / "originais"
-            path_rec  = self.root / class_name / "F-RecPlot"
+            path_rec  = self.root / class_name / "RP_perc"
 
             if not path_orig.exists() or not path_rec.exists():
                 print(f"Diretórios não encontrados para classe {class_name}")

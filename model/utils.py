@@ -22,6 +22,7 @@ BATCH_SIZE = 32
 EPOCHS = 30
 K_FOLDS = 5
 SEEDS = [7, 12, 42, 65, 87, 93, 107, 121]
+# SEEDS = [7, 12]
 
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("Utilizando dispositivo", DEVICE)

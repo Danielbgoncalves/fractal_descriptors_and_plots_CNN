@@ -1,4 +1,4 @@
-from model import criar_modelo
+from .model import criar_modelo
 
 EPOCHS = 30
 SEED = 42
@@ -10,9 +10,9 @@ import torchvision.models as models
 import os
 import pandas as pd
 
-from dataset import load_data_from_folders, ImageDataset
+from .dataset import load_data_from_folders, ImageDataset
 from sklearn.model_selection import StratifiedKFold
-from utils import *
+from .utils import *
 from torch.utils.data import DataLoader
 
 
@@ -102,7 +102,7 @@ def train_one_fold(model, train_loader, val_loader, epochs=EPOCHS):
 
     return model, best_model_state, history, metrics
 
-def run_kfold(dataset_path, dataset_type, class_names, backbone="mobilenet", seed=SEED):
+def run_kfold(dataset_path, dataset_type, class_names, backbone="mobilenet", seed=SEED, output_dir="resultados"):
 
     os.makedirs(f"models/{seed}", exist_ok=True)
 
@@ -178,7 +178,7 @@ def run_kfold(dataset_path, dataset_type, class_names, backbone="mobilenet", see
         torch.cuda.empty_cache()
 
     # ================= SALVAR RESULTADOS =================
-    base_path = f"results_kfold/{seed}/{dataset_type}/{backbone}"
+    base_path = os.path.join(output_dir, "results_kfold", str(seed), dataset_type, backbone)
     os.makedirs(base_path, exist_ok=True)
 
     # métricas finais por fold
@@ -205,7 +205,7 @@ def run_kfold(dataset_path, dataset_type, class_names, backbone="mobilenet", see
     return best_model
 
 
-def train_seeds(seeds, dataset_path, classes):
+def train_seeds(seeds, dataset_path, classes, output_dir):
     for seed in seeds:
         print(f"\n===== Treinando com seed {seed} =====")
         set_seed(seed)
@@ -213,27 +213,27 @@ def train_seeds(seeds, dataset_path, classes):
         results = {}
         results[seed] = {}
 
-        # MobileNet - F-RecPlot
+        # MobileNet - RP_perc
         results[seed]['mobnet_recplot'] = run_kfold(
-            dataset_path, "F-RecPlot", classes, backbone="mobilenet", seed=seed
+            dataset_path, "RP_perc", classes, backbone="mobilenet", seed=seed, output_dir=output_dir
         )
         torch.cuda.empty_cache()
 
-        # EfficientNet-B0 - F-RecPlot
+        # EfficientNet-B0 - RP_perc
         results[seed]['effnet_recplot'] = run_kfold(
-            dataset_path, "F-RecPlot", classes, backbone="efficientnet_b0", seed=seed
+            dataset_path, "RP_perc", classes, backbone="efficientnet_b0", seed=seed, output_dir=output_dir
         )
         torch.cuda.empty_cache()
 
         # MobileNet - originais
         results[seed]['mobnet_orig'] = run_kfold(
-            dataset_path, "originais", classes, backbone="mobilenet", seed=seed
+            dataset_path, "originais", classes, backbone="mobilenet", seed=seed, output_dir=output_dir
         )
         torch.cuda.empty_cache()
 
         # EfficientNet-B0 - originais
         results[seed]['effnet_orig'] = run_kfold(
-            dataset_path, "originais", classes, backbone="efficientnet_b0", seed=seed
+            dataset_path, "originais", classes, backbone="efficientnet_b0", seed=seed, output_dir=output_dir
         )
         torch.cuda.empty_cache()
 
