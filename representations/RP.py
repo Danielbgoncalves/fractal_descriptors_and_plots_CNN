@@ -56,7 +56,8 @@ def processar_features(n, new_features, tamanho_img):
 
     for i in range(n):
         signal = new_features[i, :].reshape(-1, 1)
-        channel = create_recorrence_plot_bin(signal) # _bin se de acordo com o artigo do zanchas e sem o _bin se de acordo com o artigo do Guilherme
+        # com "_bin" se de acordo com o artigo do zanchas e sem o "_bin" se de acordo com o artigo do Guilherme
+        channel = create_recorrence_plot(signal) 
         imgs[i,:,:] = channel 
     
     return imgs
@@ -64,7 +65,8 @@ def processar_features(n, new_features, tamanho_img):
 def normalizar_linhas_em_blocos(linha, tamanho_bloco=20):
     '''
     Normaliza os valores de uma única linha (imagem), bloco por bloco 
-    (cada bloco = conjunto de descritores que fazem sentido juntos)
+    (cada bloco = conjunto de descritores que fazem sentido juntos
+    por exemplo os 20 MinkLAC ou os 20 Euclnn)
     '''
 
     linha_norm = np.zeros_like(linha)
