@@ -1,8 +1,8 @@
-from model.explainable.gradcam import *
+from explainable.gradcam import *
 from model.dataset import EnsembleTestDataset
 # from metrics import metrics_to_csv
 # from save_outputs import salvar_saidas_todos
-from model.explainable.gradcam import *
+from explainable.gradcam import *
 # from efficiency import tabela_eficiencia
 from model.utils import *
 from model.dataset import *
