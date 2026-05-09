@@ -14,6 +14,12 @@ from .utils import DEVICE
 
 
 def mostrar_metricas(nome_cenario, y_true, y_pred):
+
+    y_true_arr = np.array(y_true)
+    y_pred_arr = np.array(y_pred)
+    acertos = np.sum(y_true_arr == y_pred_arr)
+    acertos_form = f"{acertos}/{len(y_pred)}"
+
     acc = accuracy_score(y_true, y_pred)
     f1 = f1_score(y_true, y_pred, average='macro')
     recall = recall_score(y_true, y_pred, average='macro')
@@ -33,6 +39,7 @@ def mostrar_metricas(nome_cenario, y_true, y_pred):
     specificity = np.mean(specificities)
 
     return {
+        "acertos": acertos_form,
         "acc": acc,
         "f1_macro": f1,
         "recall_macro": recall,
