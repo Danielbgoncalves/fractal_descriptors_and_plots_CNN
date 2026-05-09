@@ -105,7 +105,7 @@ def visualize_results(attr_np, img_fundo, info_pred, porcentagens, confiancas):
     fig = plt.figure(figsize=(12,5))
 
     ax1 = fig.add_subplot(1,2,1)
-    titulo_heat = f"XAI: {info_pred['classe_real']} | Pred: {info_pred['classe_pred']} ({info_pred['confianca_pct']}%)"
+    titulo_heat = f"XAI: {info_pred['classe_real']} | Pred: {info_pred['classe_pred']} ({info_pred['confianca_pct']:.1f}%)"
 
     viz.visualize_image_attr(
         attr_np,                     
@@ -131,8 +131,8 @@ def visualize_results(attr_np, img_fundo, info_pred, porcentagens, confiancas):
 
 if __name__ == "__main__":
 
-    weigths_path = r"C:\Users\IFTM-ITB\Desktop\EnsembleFractal\models\42\mobilenet_originais.pth"
-    img_path = r"C:\Users\IFTM-ITB\Desktop\EnsembleFractal\datasets\dataset_displasia\teste\severe\originais\12.tif"
+    weigths_path = r"models\42\mobilenet_RP_perc.pth"
+    img_path=r"C:\Users\IFTM-ITB\Desktop\EnsembleFractal\datasets\originais_RPperc_continuous\teste\severe\RP_perc\severe-04-roi3.png"
     backbone = 'mobilenet'
     num_classes = 2
     target_class = 1 #severe
