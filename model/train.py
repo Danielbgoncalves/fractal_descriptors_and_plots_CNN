@@ -104,7 +104,7 @@ def train_one_fold(model, train_loader, val_loader, epochs=EPOCHS):
 
 def run_kfold(dataset_path, dataset_type, class_names, backbone="mobilenet", seed=SEED, output_dir="resultados"):
 
-    os.makedirs(f"models/{seed}", exist_ok=True)
+    # os.makedirs(f"models/{seed}", exist_ok=True)
 
     data_list = load_data_from_folders(dataset_path, class_names, dataset_type)
     print(f"Total de imagens: {len(data_list)}")
@@ -158,8 +158,10 @@ def run_kfold(dataset_path, dataset_type, class_names, backbone="mobilenet", see
             best_val_loss_global = metrics["best_val_loss"]
             best_model_state = best_model_fold_state
 
-            nome_modelo = f"models/{seed}/{backbone}_{dataset_type}.pth"
-            torch.save(best_model_state, nome_modelo)
+            dir = os.path.join(output_dir, "models", str(seed))
+            os.makedirs(dir, exist_ok=True)
+            save_path = os.path.join(dir, f"{backbone}_{dataset_type}.pth")
+            torch.save(best_model_state, save_path)
             print(f"   -> Novo melhor modelo salvo! ValLoss: {best_val_loss_global:.4f}")
 
         # ---------- histórico e resultados ----------
