@@ -38,7 +38,7 @@ Venv/
 
 # Logs and results
 *.log
-resultados_testes.csv
+# resultados_testes.csv
 
 # macOS
 .DS_Store
