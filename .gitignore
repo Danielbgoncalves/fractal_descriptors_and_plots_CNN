@@ -1,6 +1,10 @@
 entradas_para_testes/
 __pycache__/
 results_kfold/
+datasets/
+displasia_completo/
+pulmao_completo/
+
 *.pyc
 *.pyo
 *.pyd
