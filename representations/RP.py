@@ -1,8 +1,4 @@
-'''
-
-'''
 import numpy as np
-# from create_recorrence_plot import create_recorrence_plot
 import imageio.v3 as iio
 from numba import njit
 import os
@@ -62,46 +58,83 @@ def processar_features(n, new_features, tamanho_img):
     
     return imgs
 
-def normalizar_linhas_em_blocos(linha, tamanho_bloco=20):
+def normalizar_features_globalmente(features, tamanho_bloco=20, mins_treino=None, maxs_treino=None):
     '''
-    Normaliza os valores de uma única linha (imagem), bloco por bloco 
-    (cada bloco = conjunto de descritores que fazem sentido juntos
-    por exemplo os 20 MinkLAC ou os 20 Euclnn)
-    '''
-
-    linha_norm = np.zeros_like(linha)
-    m = len(linha) # num de colunas
-
-    for i in range(0, m, tamanho_bloco):
-        fim = min(i + tamanho_bloco, m)
-        bloco = linha[i:fim].astype(np.float64)
-        min_val, max_val = np.min(bloco), np.max(bloco)
-
-        if max_val > min_val:
-            linha_norm[i:fim] = (bloco - min_val) / (max_val - min_val)
-        else:
-            linha_norm[i:fim] = 0.0
+    Normaliza a matriz de features inteira (todas as amostras simultaneamente),
+    mas respeitando os "blocos" de descritores (ex: a cada 20 colunas).
     
-    return linha_norm
-        
-
-def generate_RP(features):
+    - Se mins_treino/maxs_treino forem None: Assume que é o conjunto de TREINO.
+      Calcula e retorna os mins/maxs para serem usados depois.
+    - Se forem passados: Assume que é Validação ou TESTE, e aplica os valores do treino.
     '''
-    ENTRADA: features: matriz numpy com descritores da PERCOLAÇÃO
-    SAIDA: cada linha da matriz gera uma imagem 2D criada com reshape RecPlot
-    '''
-    n = features.shape[0] # quantidade de linhas (imagens a serem geradas)
-    m = features.shape[1] # quantidade de colunas (descritores, imagem gerada é mxm)
-
+    n = features.shape[0]
+    m = features.shape[1]
     new_features = np.zeros((n, m))
     
-    # Os descritores são 20 Minkp + 20 Minkg + 20 Minkh 
-    # + o memos para Eucl e Manh
-    # logo, sempre de 20 em 20 estão descritores relacionados
-    for i in range(n):
-        new_features[i, :] = normalizar_linhas_em_blocos(features[i, :], tamanho_bloco=20)
-        # new_features[:, i:i+20] = mat2gray(features[:,  i:i+20])
+    # Flag para saber se estamos no Treino (calculando) ou no Teste (aplicando)
+    calculando_treino = (mins_treino is None) or (maxs_treino is None)
+    
+    mins_salvos = []
+    maxs_salvos = []
+    
+    for idx_bloco, i in enumerate(range(0, m, tamanho_bloco)):
+        fim = min(i + tamanho_bloco, m)
+        bloco = features[:, i:fim].astype(np.float64) # Pega TODAS as linhas, e colunas do bloco
+        
+        if calculando_treino:
+            # Acha o min/max do bloco em todo o dataset de TREINO
+            min_val = np.min(bloco)
+            max_val = np.max(bloco)
+            mins_salvos.append(min_val)
+            maxs_salvos.append(max_val)
+        else:
+            # Usa o min/max que a rede aprendeu no treino
+            min_val = mins_treino[idx_bloco]
+            max_val = maxs_treino[idx_bloco]
 
+        # Evita divisão por zero
+        if max_val > min_val:
+            # Normalização Min-Max padrão
+            bloco_norm = (bloco - min_val) / (max_val - min_val)
+            
+            # Se for teste, alguns valores podem estourar os limites [0, 1]. Clipamos para garantir:
+            if not calculando_treino:
+                bloco_norm = np.clip(bloco_norm, 0.0, 1.0)
+                
+            new_features[:, i:fim] = bloco_norm
+        else:
+            new_features[:, i:fim] = 0.0
+            
+    if calculando_treino:
+        return new_features, mins_salvos, maxs_salvos
+    else:
+        return new_features
+
+
+def generate_RP_treino(features_treino):
+    ''' Gera as imagens de Treino e guarda os parâmetros de normalização '''
+    n = features_treino.shape[0]
+    m = features_treino.shape[1]
+    
+    new_features, mins, maxs = normalizar_features_globalmente(features_treino, tamanho_bloco=20)
+    
     imgs = processar_features(n, new_features, m)
+    
+    return imgs, mins, maxs
+    #return imgs
 
+
+def generate_RP_teste(features_teste, mins_treino, maxs_treino):
+    ''' Gera as imagens de Teste/Validação usando a escala do Treino '''
+    n = features_teste.shape[0]
+    m = features_teste.shape[1]
+    
+    new_features = normalizar_features_globalmente(
+        features_teste, 
+        tamanho_bloco=20, 
+        mins_treino=mins_treino, 
+        maxs_treino=maxs_treino
+    )
+    
+    imgs = processar_features(n, new_features, m)
     return imgs
