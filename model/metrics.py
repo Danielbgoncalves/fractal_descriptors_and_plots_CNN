@@ -125,3 +125,19 @@ def metrics_to_csv(seeds, results, test_loader, output_dir):
     df_results = pd.DataFrame(all_results)
     output_path = os.path.join(output_dir, "resultados_testes.csv")
     df_results.to_csv(output_path, index=False)
+
+
+    df = df_results.drop(columns=['acertos'])
+    df_mean_agrupado = df.groupby("cenario").agg(
+        acc_mean=("acc", "mean"),
+        acc_std=("acc", "std"),
+        f1_mean=("f1_macro", "mean"),
+        f1_std=("f1_macro", "std"),
+        recall_mean=("recall_macro", "mean"),
+        recall_std=("recall_macro", "std"),
+        spec_mean=("specificity_macro", "mean"),
+        spec_std=("specificity_macro", "std"),
+    ).reset_index()
+    output_path = os.path.join(output_dir, "resultados_testes_mean.csv")
+    df_mean_agrupado.to_csv(output_path, index=False)
+

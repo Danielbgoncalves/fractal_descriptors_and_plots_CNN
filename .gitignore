@@ -27,7 +27,6 @@ Venv/
 .ipynb_checkpoints
 
 # Images and large data
-*.png
 *.jpg
 *.jpeg
 *.tif
@@ -38,7 +37,7 @@ Venv/
 
 # Logs and results
 *.log
-resultados_testes.csv
+# resultados_testes.csv
 
 # macOS
 .DS_Store
