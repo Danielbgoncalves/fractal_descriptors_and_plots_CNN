@@ -1,0 +1,3 @@
+- Usando o codigo que descongela 3 ultimas camadas
+- Usando a geração de imagens normalizada de modo novo e parece ser melhor
+- Usa imagens de treino RPnew as de treino são 23-44 para saudaveis e 136-159 para severe 
