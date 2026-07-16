@@ -1,0 +1,2 @@
+Usando o codigo que so descongela o classificador, tem o comentário saida2 em cima
+Usando a geração de imagens normalizada de modo novo e parece ser melhor

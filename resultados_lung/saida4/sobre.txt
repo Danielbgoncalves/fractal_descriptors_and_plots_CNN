@@ -1,0 +1,1 @@
+sa nova função cria_modelo passando o dtipo de datasset para não congelar com recplot
