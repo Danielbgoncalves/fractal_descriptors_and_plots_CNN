@@ -139,12 +139,31 @@ if __name__ == "__main__":
     dir_out = sys.argv[2]
 
     indices_teste = None
+    if len(sys.argv) < 3:
+        print("Uso: python script.py <csv_descritores> <diretorio_saida> [intervalos_teste]")
+        print("Exemplo de intervalos: 1-22,140-162")
+        sys.exit(1)
+
+    csv_descritores = sys.argv[1]
+    dir_out = sys.argv[2]
+
+    indices_teste = None
     if len(sys.argv) > 3:
-        parts = sys.argv[3].split('-')
-        if len(parts) == 2:
-            indices_teste = list(range(int(parts[0]), int(parts[1]) + 1))
-        else:
-            indices_teste = [int(x) for x in sys.argv[3].split(',')]
+        indices_teste = []
+        # Primeiro, dividimos os múltiplos intervalos separados por vírgula
+        partes_intervalos = sys.argv[3].split(',')
+        
+        for parte in partes_intervalos:
+            if '-' in parte:
+                # É um intervalo (ex: "1-22")
+                limites = parte.split('-')
+                if len(limites) == 2:
+                    inicio = int(limites[0])
+                    fim = int(limites[1])
+                    indices_teste.extend(list(range(inicio, fim + 1)))
+            else:
+                indices_teste.append(int(parte))
+
 
     create_representations(csv_descritores, dir_out, test_indices=indices_teste)
 
