@@ -123,9 +123,9 @@ def run_kfold(dataset_path, dataset_type, class_names, backbone="mobilenet", see
     #     groups.append(patient_id)
 
     if dataset_type == "RP_perc":
-        current_transform = transform_recplot
+        current_transform = transform_originais #transform_recplot
         # Para RecPlots, inicialização aleatória (treina do zero) é o ideal
-        peso_carregado = None 
+        peso_carregado = 'DEFAULT' 
     else:
         current_transform = transform_originais
         # Para Originais, usamos Transfer Learning da ImageNet
