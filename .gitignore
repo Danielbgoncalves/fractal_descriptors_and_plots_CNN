@@ -1,0 +1,44 @@
+
+# Arquivos compilados
+*__pycache__/
+*.py[cod]
+*$py.class
+# Arquivos pesados 
+*.pyc
+*.pth
+__pycache__/
+*.bat
+# Extensões C
+*.so
+# Distribuição e pacotes
+Python
+build/
+dist/
+*.egg-info/
+eggs/
+# Logs e relatórios de testes
+*.log
+coverage
+cache/
+nosetests.xml
+coverage.xml
+# Configurações locais e ambientes virtuais
+env
+venv/
+env/
+venv/
+# Jupyter Notebooks
+ipynb_checkpoints/
+# Ferramentas específicas
+mypy_cache/
+pytest_cache/
+dmypy.json
+# IDEs e editores (exemplo: PyCharm, VSCode)
+idea/
+vscode/
+# Arquivos de banco de dados locais (exemplo: Django)
+db.sqlite3
+db.sqlite3-journal
+# Outros exemplos comuns
+*.mo # Arquivos de tradução compilados
+*.pot # Arquivos de template de tradução
