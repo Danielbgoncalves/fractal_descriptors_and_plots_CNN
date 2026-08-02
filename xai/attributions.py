@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import torch.nn.functional as F
 from captum.attr import IntegratedGradients, LayerGradCam, Occlusion
 
 MEAN_STD= {
@@ -47,15 +48,18 @@ def gerar_atribuicao(
         input_tensor = input_tensor.unsqueeze(0)
 
     input_tensor = input_tensor.requires_grad_(True)
+    spatial_size = input_tensor.shape[2:]
 
     if metodo == "gradcam":
         if camada_alvo is None: raise ValueError("O método Grad-Cam exige que a camada_alvo seja especificada.")
         grad_cam = LayerGradCam(modelo, camada_alvo)
         attr = grad_cam.attribute(input_tensor, target=target_class)
+        attr = F.interpolate(attr, size=spatial_size, mode='bilinear', align_corners=False)
 
     elif metodo == "ig":
         ig = IntegratedGradients(modelo)
         attr = ig.attribute(input_tensor, target=target_class, n_steps=50)
+
 
     elif metodo == "occlusion":
         occ = Occlusion(modelo)
