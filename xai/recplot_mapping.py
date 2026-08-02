@@ -153,7 +153,7 @@ def avaliar_importancia_por_metrica_e_funcao(modelo: torch.nn.Module, img_rec_te
         prob_base = out_orig[0, target_class].item()
         
     subbandas = definir_bandas_funcoes()
-    fator_conversao = TAMANHO_REDE / TAMANHO_ORIGINAL_DESCRITORES[cite: 1]
+    fator_conversao = TAMANHO_REDE / TAMANHO_ORIGINAL_DESCRITORES
     
     impacto_bandas = {}
     
