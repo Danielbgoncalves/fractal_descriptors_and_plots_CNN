@@ -27,6 +27,7 @@ env
 venv/
 env/
 venv/
+.venv/
 # Jupyter Notebooks
 ipynb_checkpoints/
 # Ferramentas específicas
@@ -42,3 +43,12 @@ db.sqlite3-journal
 # Outros exemplos comuns
 *.mo # Arquivos de tradução compilados
 *.pot # Arquivos de template de tradução
+
+
+.ruff_cache
+datasets/
+explainable/
+extract_fractal_features/
+features_to_image/
+representations/
+resultados/
