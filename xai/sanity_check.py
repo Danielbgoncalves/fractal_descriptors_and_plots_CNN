@@ -21,7 +21,7 @@ from skimage.metrics import structural_similarity as ssim
 from xai.attributions import gerar_atribuicao
 from xai.loader import obter_camada_alvo, BRANCH_FILES
 
-def _reinicializar_modulo(modulo: torch.nn.Modulo) -> None:
+def _reinicializar_modulo(modulo: torch.nn.Module) -> None:
     '''
     reinicializa in-place um submódulo como Conv2d, Linear, batnorm, ...
     '''
@@ -36,7 +36,7 @@ def _blocos_do_backbone(modelo: torch.nn.Module):
 
     blocos = [("classifier", modelo.classifier)]
     for i in reversed(range(len(modelo.features))):
-        blocos.append((f"features[{i}]", {modelo.features[i]}))
+        blocos.append((f"features[{i}]", modelo.features[i]))
 
     return blocos
 
@@ -53,7 +53,7 @@ def _para_heatmap_2d(attr: torch.Tensor) -> np.ndarray:
 
     return (mapa - min) / (max - min)
 
-def teste_rand_em_cascada(
+def teste_rand_em_cascata(
         modelo_treinado: torch.nn.Module,
         input_tensor: torch.Tensor,
         target_class: int,
@@ -103,6 +103,8 @@ def teste_rand_em_cascada(
             "ssim": float(similaridade_ssim)
         })
 
+    return resultados
+
 def rodar_sanity_check_todos_branches(
         branches, 
         img_orig_tensor: torch.Tensor,
@@ -125,11 +127,11 @@ def rodar_sanity_check_todos_branches(
         tipo_dataset = BRANCH_FILES[nome_branch][1] # "origianis" ou "recplot"
         entrada = img_orig_tensor if tipo_dataset == "originais" else img_rec_tensor
 
-        resultados_por_branch[nome_branch] = teste_rand_em_cascada(
+        resultados_por_branch[nome_branch] = teste_rand_em_cascata(
             modelo, entrada, target_class=target_class, metodo=metodo
         )
 
-        return resultados_por_branch
+    return resultados_por_branch
 
 
 def plotar_curva_sanidade(
