@@ -27,6 +27,7 @@ env
 venv/
 env/
 venv/
+.venv/
 # Jupyter Notebooks
 ipynb_checkpoints/
 # Ferramentas específicas
