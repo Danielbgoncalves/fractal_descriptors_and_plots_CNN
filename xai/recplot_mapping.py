@@ -16,7 +16,7 @@ def pixel_to_descriptor(row: int, col: int, n_descritores: int = TAMANHO_ORIGINA
     Mapeia um pixel (row, col) do heatmap 224x224 para o par de descritores originais
     (descritor_row, descritor_col) no espaço 180x180 e decodifica a semântica de cada um.[cite: 1]
     """
-    fator_escala = n_descritores / tamanho_final  # 180 / 224 ≈ 0.8035[cite: 1]
+    fator_escala = n_descritores / tamanho_final  # 180 / 224 ≈ 0.8035
     
     desc_row = int(row * fator_escala)
     desc_col = int(col * fator_escala)
@@ -45,18 +45,16 @@ def decodificar_indice_descritor(idx: int):
         metrica = "Manhattan"
         local_idx = idx - 120
         
-    # 2. Identifica a Função (P, G, H) dentro do bloco de 60
     if local_idx < 20:
-        funcao = "P"
+        funcao = "p"
         raio_idx = local_idx
     elif local_idx < 40:
-        funcao = "G"
+        funcao = "g"
         raio_idx = local_idx - 20
     else:
-        funcao = "H"
+        funcao = "h"
         raio_idx = local_idx - 40
         
-    # 3. Identifica o Raio (3 a 41, ímpares)
     raio = RAIOS[raio_idx]
     
     return {
@@ -106,7 +104,7 @@ def overlay_bandas_recplot(heatmap: np.ndarray, img_rec_np: np.ndarray, detalhar
     ax.imshow(heatmap, cmap="jet", alpha=alpha_heatmap)
     
     bandas = definir_bandas_funcoes() if detalhar_funcoes else definir_bandas_metricas()
-    fator_conversao = TAMANHO_REDE / TAMANHO_ORIGINAL_DESCRITORES  # 224 / 180[cite: 1]
+    fator_conversao = TAMANHO_REDE / TAMANHO_ORIGINAL_DESCRITORES  # 224 / 180
     
     cores = ["#FF3333", "#33FF33", "#3388FF", "#FF9900", "#CC33FF", "#00FFFF", "#FFFF00", "#FF00AA", "#FFFFFF"]
     
