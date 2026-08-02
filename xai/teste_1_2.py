@@ -1,7 +1,3 @@
-'''
-    Testa loader.py e attributions.py
-'''
-
 import torch
 from model.dataset import EnsembleTestDataset
 from model.utils import transform_originais, transform_recplot
