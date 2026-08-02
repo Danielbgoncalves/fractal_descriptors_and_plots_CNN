@@ -1,4 +1,4 @@
-from ..model import carregar_modelo
+from model.model import carregar_modelo
 
 import os
 import torch
@@ -19,7 +19,7 @@ def carregar_todos_os_branches(seed: int, num_classes: int, models_dir: str="mod
     '''
     branches = {}
     for nome, (backbone, tipo_dataset, nome_arquivo) in BRANCH_FILES.items():
-        caminho = os.path.join(backbone, str(seed), nome_arquivo)
+        caminho = os.path.join(models_dir, str(seed), nome_arquivo)
 
         if not caminho: raise FileNotFoundError(f"Pesos não encontrados em {caminho}")
 
@@ -30,9 +30,8 @@ def carregar_todos_os_branches(seed: int, num_classes: int, models_dir: str="mod
 
     return branches
 
-def obter_camda_alvo(modelo: torch.nn.Module) -> torch.nn.Module:
+def obter_camada_alvo(modelo: torch.nn.Module) -> torch.nn.Module:
     '''
     Retorna a última camada convolucional dos modelos 
     '''
-
     return modelo.features[-1]

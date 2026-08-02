@@ -40,6 +40,9 @@ def gerar_atribuicao(
 
     modelo.zero_grad()
 
+    device = next(modelo.parameters()).device
+    input_tensor = input_tensor.to(device)
+
     if input_tensor.dim() == 3:
         input_tensor = input_tensor.unsqueeze(0)
 
