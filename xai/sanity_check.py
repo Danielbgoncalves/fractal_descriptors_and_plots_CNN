@@ -9,10 +9,12 @@ Funciona assim:
     aprendeu de verdade. Nesse caso ficamos sem fundamento argumentativo.
 '''
 
-import copy
+import copy 
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 import numpy as np
 import torch
+import torch.nn as nn
 from scipy.stats import spearmanr
 from skimage.metrics import structural_similarity as ssim
  
@@ -128,3 +130,28 @@ def rodar_sanity_check_todos_branches(
         )
 
         return resultados_por_branch
+
+
+def plotar_curva_sanidade(
+    resultados_por_branch,
+    metrica: str = "spearman",
+    titulo: str = "Teste de sanidade — randomização em cascata",
+) -> Figure:
+    """Gráfico de linha: similaridade com a explicação original x quantos
+    blocos já foram randomizados, um traço por branch — pronto para
+    virar figura do artigo (seção de sanity checks).
+    """
+    fig, ax = plt.subplots(figsize=(9, 5))
+ 
+    for nome_branch, resultados in resultados_por_branch.items():
+        valores = [r[metrica] for r in resultados]
+        ax.plot(range(len(valores)), valores, marker="o", label=nome_branch)
+ 
+    ax.axhline(0, color="gray", linewidth=0.8, linestyle="--")
+    ax.set_xlabel("Blocos randomizados (0 = modelo treinado; último = rede totalmente aleatória)")
+    ax.set_ylabel(metrica.capitalize())
+    ax.set_title(titulo)
+    ax.legend()
+    fig.tight_layout()
+
+    return fig
