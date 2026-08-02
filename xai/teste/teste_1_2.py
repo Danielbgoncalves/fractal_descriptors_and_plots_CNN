@@ -23,10 +23,6 @@ dataset = EnsembleTestDataset(
 
 # Pega uma amostra de teste (Original + RecPlot)
 img_original, img_rec, label = dataset[0]
-# print(sample)
-# img_orig = sample["img_orig"].unsqueeze(0).to(device) # (1, 3, 224, 224)
-# img_rec  = sample["img_rec"].unsqueeze(0).to(device)  # (1, 3, 224, 224)
-# label = sample["label"]
 
 # 4. Testa a geração de atribuição para o branch RecPlot + MobileNet
 modelo_mobilenet_rec = branches["mobilenet_recplot"]
