@@ -69,10 +69,10 @@ def calcula_matricas_xai(
 
     robustness = quantus.MaxSensitivity(
         nr_samples=nr_samples_robustness,
-        return_ggregate=False,
+        return_aggregate=False,
         display_progressbar=False,
         disable_warnings=True,
-    )(model=modelo, x_batch=x_batch, y_batch=y_batch, a_batch=a_batch,
+    )(model=modelo, x_batch=x_batch, y_batch=y_batch, explain_func=explain_func,
       channel_first=True, device=device)
 
     complexity = quantus.Sparseness(
