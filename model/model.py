@@ -226,13 +226,13 @@ def criar_modelo(
 #     return model
 
 def carregar_modelo(backbone, num_classes, dataset_type, path_weights):
-    print(f"Carregando {backbone} de {path_weights}...")
+    #print(f"Carregando {backbone} de {path_weights}...")
 
     model = criar_modelo(backbone, num_classes, pretrained=None) # Cria o modelo com a arquitetura correta
 
     # Carrega os pesos treinados
     try:
-        model.load_state_dict(torch.load(path_weights, map_location=DEVICE))
+       model.load_state_dict(torch.load(path_weights, map_location=DEVICE, weights_only=True))
     except FileNotFoundError:
         print(f"ERRO: Arquivo {path_weights} não encontrado! Treine o modelo antes.")
         return None
