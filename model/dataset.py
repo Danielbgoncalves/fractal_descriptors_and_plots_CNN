@@ -57,10 +57,10 @@ class EnsembleTestDataset(Dataset):
                 if p.is_file() and p.suffix.lower() in valid_exts
             }
 
-            orig_files = [
+            orig_files = sorted(
                 p for p in path_orig.iterdir()
                 if p.is_file() and p.suffix.lower() in valid_exts
-            ]
+            )
 
             for orig_path in orig_files:
                 key = orig_path.stem  # nome sem extensão
