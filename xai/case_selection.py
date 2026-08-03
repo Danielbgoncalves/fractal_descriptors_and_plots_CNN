@@ -28,11 +28,11 @@ def _adiciona_confianca_e_margem(df: pd.DataFrame) -> pd.DataFrame:
         prob entre as classes
     '''
 
-    df = df.copy
+    df = df.copy()
     cols_prob = _colunas_de_probabilidade(df)
     probs = df[cols_prob].to_numpy()
 
-    linhas = np.arrange(len(df))
+    linhas = np.arange(len(df))
     df["confianca"] = probs[linhas, df["y_pred"].to_numpy()]
 
     probs_desc = -np.sort(-probs, axis=1)
@@ -97,7 +97,7 @@ def casos_por_confianca(
     else:  
         subset = df_filtrado.sort_values("margem", ascending=True)
 
-    return subset["samples"].heaad(n).tolist()
+    return subset["sample"].head(n).tolist()
 
 def casos_discordancia_entre_branches(
     df: pd.DataFrame,
