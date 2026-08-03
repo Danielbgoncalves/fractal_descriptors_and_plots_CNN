@@ -31,9 +31,8 @@ def _criar_explain_func(metodo: str="gradcam"):
 
         saida = []
         for i in range(x.shape[0]):
-            a = gerar_atribuicao(
-                    model, x[i : i+1], camada_alvo=camada, metodo=metodo
-                )
+            a = gerar_atribuicao(model, x[i : i + 1], int(targets[i]), camada_alvo=camada, metodo=metodo)
+
             saida.append(a.detach().cpu().numpy())
         return np.concatenate(saida, axis=0)
 
@@ -53,7 +52,7 @@ def calcula_matricas_xai(
     x_batch: (N, C, H, W) já normalizado (a mesma entrada que vai pro
         modelo, não a imagem "crua"). y_batch: (N,) com as classes-alvo.
     '''
-    device = str(next(modelo.parameters).device)
+    device = str(next(modelo.parameters()).device)
     explain_func = _criar_explain_func(metodo)
 
     a_batch = explain_func(modelo, x_batch, y_batch)
@@ -69,15 +68,14 @@ def calcula_matricas_xai(
 
     robustness = quantus.MaxSensitivity(
         nr_samples=nr_samples_robustness,
-        return_ggregate=False,
+        return_aggregate=False,
         display_progressbar=False,
         disable_warnings=True,
-    )(model=modelo, x_batch=x_batch, y_batch=y_batch, a_batch=a_batch,
-      channel_first=True, device=device)
+    )(model=modelo, x_batch=x_batch, y_batch=y_batch, explain_func=explain_func, channel_first=True, device=device)
 
     complexity = quantus.Sparseness(
         return_aggregate=False, 
-        disable_progressbar=False,
+        display_progressbar=False,
         disable_warnings=True
     )(model=modelo, x_batch=x_batch, y_batch=y_batch, a_batch=a_batch,
       channel_first=True, device=device)

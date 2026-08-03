@@ -53,7 +53,7 @@ def gerar_atribuicao(
     if metodo == "gradcam":
         if camada_alvo is None: raise ValueError("O método Grad-Cam exige que a camada_alvo seja especificada.")
         grad_cam = LayerGradCam(modelo, camada_alvo)
-        attr = grad_cam.attribute(input_tensor, target=target_class)
+        attr = grad_cam.attribute(input_tensor, target=target_class, relu_attributions=True)
         attr = F.interpolate(attr, size=spatial_size, mode='bilinear', align_corners=False)
 
     elif metodo == "ig":

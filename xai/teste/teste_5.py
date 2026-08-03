@@ -11,8 +11,8 @@ dataset = EnsembleTestDataset(
 
 df = xai_metrics_to_csv(
     seeds=SEEDS, num_classes=2, models_dir="resultados_displasia/models",
-    dataset=dataset, output_dir="resultados_displasia",
-    n_amostras=15,   # comece pequeno!
+    dataset=dataset, output_dir="resultados_displasia", metodo="ig",
+    n_amostras=10,   
     device="cuda",
 )
 
