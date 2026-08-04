@@ -163,7 +163,7 @@ def cruzar_com_predicoes(
     cenario_ensemble: str
 ) -> pd.DataFrame:
     '''
-    Junta o resultado de comparar-arquiteturas_em_lotes() com
+    Junta o resultado de comparar_arquiteturas_em_lotes() com
     a linha do ENSEMBLE (uma das 6 combinações - nunca "auto)
     para cada amostra
     '''
