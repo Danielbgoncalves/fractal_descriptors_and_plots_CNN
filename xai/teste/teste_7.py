@@ -3,11 +3,15 @@ from model.dataset import EnsembleTestDataset
 from model.utils import transform_originais, transform_recplot, SEEDS
 from xai.loader import carregar_todos_os_branches
 from xai.case_selection import casos_discordancia_entre_branches
-from xai.arquiteture_comp import comparar_arquiteturas_em_lote, cruzar_com_predicoes, resumo_concordancia_vs_ensemble
+from xai.comparacao_arquiteturas import comparar_arquiteturas_em_lote, cruzar_com_predicoes, resumo_concordancia_vs_ensemble
 
 df_predicoes = pd.read_csv("resultados_displasia/predicoes.csv")
-dataset = EnsembleTestDataset('caminho/teste', ['healthy', 'severe'],
-                               transform_original=transform_originais, transform_recplot=transform_recplot)
+dataset = EnsembleTestDataset(
+    "C:\\Users\\IFTM-ITB\\Desktop\\EnsembleFractal\\datasets\\daniel_tentando\\novo\\RPnew\\teste", 
+    ['healthy', 'severe'],
+    dir_originais="data/displasia/test/originais",
+    dir_recplots="data/displasia/test/recplots"
+)
 branches = carregar_todos_os_branches(seed=7, num_classes=2, models_dir="resultados_displasia/models", device="cuda")
 
 # usa a Etapa 6 pra focar nos casos onde já se sabe que há discordância
