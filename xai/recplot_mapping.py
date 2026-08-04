@@ -7,7 +7,7 @@ import torch
 TAMANHO_ORIGINAL_DESCRITORES = 180  # Matriz N x N original[cite: 1, 2]
 TAMANHO_REDE = 224                  # Entradas da CNN (224x224)[cite: 1]
 
-# Lista exata de raios ímpares de 3 a 41 (total de 20 raios)
+# Lista exata de raios ímpares de 3 a 41 
 RAIOS = list(range(3, 42, 2))
 
 
@@ -16,7 +16,7 @@ def pixel_to_descriptor(row: int, col: int, n_descritores: int = TAMANHO_ORIGINA
     Mapeia um pixel (row, col) do heatmap 224x224 para o par de descritores originais
     (descritor_row, descritor_col) no espaço 180x180 e decodifica a semântica de cada um.[cite: 1]
     """
-    fator_escala = n_descritores / tamanho_final  # 180 / 224 ≈ 0.8035
+    fator_escala = n_descritores / tamanho_final  # ≈ 0.8035
     
     desc_row = int(row * fator_escala)
     desc_col = int(col * fator_escala)
@@ -34,7 +34,7 @@ def decodificar_indice_descritor(idx: int):
     """
     Dado um índice [0..179], retorna a métrica, a função (P, G, H) e o raio r correspondentes.
     """
-    # 1. Identifica a Métrica
+
     if idx < 60:
         metrica = "Minkowski"
         local_idx = idx
@@ -115,7 +115,7 @@ def overlay_bandas_recplot(heatmap: np.ndarray, img_rec_np: np.ndarray, detalhar
         
         cor = cores[idx % len(cores)]
         
-        # Quadrado delimitando o bloco na matriz de recorrência
+        # n gostei...
         rect = patches.Rectangle(
             (p_inicio, p_inicio), largura, largura,
             linewidth=1.5, edgecolor=cor, facecolor='none', linestyle='--'
@@ -139,7 +139,7 @@ def overlay_bandas_recplot(heatmap: np.ndarray, img_rec_np: np.ndarray, detalhar
 def avaliar_importancia_por_metrica_e_funcao(modelo: torch.nn.Module, img_rec_tensor: torch.Tensor, target_class: int):
     """
     Avaliação Quantitativa (Oclusão): Mascara sequencialmente cada bloco (Métrica / Função)
-    e mede a queda na confiança do modelo.[cite: 2]
+    e mede a queda na confiança do modelo
     """
     modelo.eval()
     if img_rec_tensor.dim() == 3:
@@ -163,7 +163,6 @@ def avaliar_importancia_por_metrica_e_funcao(modelo: torch.nn.Module, img_rec_te
         p_in = int(inicio * fator_conversao)
         p_out = int(fim * fator_conversao)
         
-        # Oclui o bloco correspondente àquela sub-função (p, g ou h para a métrica)[cite: 2]
         img_oclusa[:, :, p_in:p_out, p_in:p_out] = 0.0
         
         with torch.no_grad():
