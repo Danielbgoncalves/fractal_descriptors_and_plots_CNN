@@ -24,6 +24,10 @@ def carregar_todos_os_branches(seed: int, num_classes: int, models_dir: str="mod
         if not caminho: raise FileNotFoundError(f"Pesos não encontrados em {caminho}")
 
         modelo = carregar_modelo(backbone, num_classes, tipo_dataset, caminho)
+        if modelo is None:
+            branches[nome] = None
+            continue
+        
         modelo = modelo.to(device)
         modelo.eval()
         branches[nome] = modelo 
