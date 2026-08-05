@@ -67,13 +67,13 @@ def empilhar_atribuicoes_entre_seeds(
         mapa = attr.detach().cpu().numpy()[0] # só (C, H, W)
         mapa = mapa.mean(axis=0) if mapa.ndim == 3 else mapa
 
-        mapa.append(mapa)
+        mapas.append(mapa)
         seeds_usadas.append(seed)
 
     if not mapas:
         raise RuntimeError(f"Nenhum modelo do branch {nome_branch!r} pôde ser carregado nas seeds fornecidas. Estranho isso...")
 
-    pilha = np.stack(mapa, axis=0)
+    pilha = np.stack(mapas, axis=0)
     return pilha, seeds_usadas
 
 def agregar_mapa_medio(pilha):
@@ -159,7 +159,7 @@ def figura_mapa_agregado(
     a aldo, entre as 8 seeds, para mesma amostra/branch.
     '''
 
-    fig, axes =plt.subplot(1, 2, figsize=(12, 6))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
     pares = [(media, "Mapa médio de atribuição"), (desvio, "Desvio-padrão entre seeds (incerteza)")]
 
     for ax, (mapa, nome) in zip(axes, pares):
@@ -170,7 +170,7 @@ def figura_mapa_agregado(
         ax.set_title(nome)
         ax.axis("off")
 
-    if titulo: fig.subtitle(titulo)
+    if titulo: fig.suptitle(titulo)
     plt.tight_layout()
 
     return fig
@@ -189,8 +189,8 @@ def salvar_mapas_agregados(
 
     os.makedirs(output_dir, exist_ok=True)
 
-    np.save(os.path.join(output_dir, f"{nome_base}_media.npy", media))
-    np.save(os.path.join(output_dir, f"{nome_base}_desvio.npy", desvio))
+    np.save(os.path.join(output_dir, f"{nome_base}_media.npy"), media)
+    np.save(os.path.join(output_dir, f"{nome_base}_desvio.npy"), desvio)
 
     pd.DataFrame({"seed": seeds_usadas}).to_csv(
         os.path.join(output_dir, f"{nome_base}_seeds_usadas.csv"), index=False
