@@ -63,6 +63,24 @@ def casos_corrigidos_pelo_ensemble(
 
     return indices_comuns[erro_sozinho & acerto_ensemble].tolist()
 
+def casos_por_margem(
+    df: pd.DataFrame,
+    seed: int,
+    cenario: str,
+    margem_max: float=0.1
+):
+    '''
+    Retorna TODAS  as amostras cuja margem enter a maior e a
+    segunda menor probabilidade é <= margem_max
+    Ou seja, mostra os casos em que o modelo ficoucom muita dúvida
+    '''
+
+    df_filtrado = df[(df["seed"] == seed) & (df["cenario"] == cenario)]
+    df_filtrado = _adiciona_confianca_e_margem(df_filtrado)
+
+    return df_filtrado[df_filtrado["margem"] <= margem_max].copy()
+
+
 def casos_por_confianca(
     df: pd.DataFrame,
     seed: int,
@@ -139,3 +157,4 @@ def obter_amostras_do_dataset(
  
 
 
+BRANCH_PARA_CENARIO_INDIVIDUAL = _BRANCH_PARA_CENARIO_INDIVIDUAL
