@@ -118,8 +118,8 @@ def comparar_arquiteturas_amostra(
     nome_mobilenet, nome_effnet = BRANCHES_POR_REPRESENTACAO[tipo_representacao]
 
     img_orig, img_rec, label = dataset[sample_idx]
-    entrada = img_orig if tipo_representacao == "orig" else img_orig
-
+    entrada = img_orig if tipo_representacao == "orig" else img_rec
+    
     if target_class is None:
         target_class = int(label.item()) if isinstance(label, torch.Tensor) else int(label)
 

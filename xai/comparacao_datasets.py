@@ -86,7 +86,7 @@ def resumo_importancia_por_banda(df_importancia: pd.DataFrame)-> pd.DataFrame:
     seeds
     '''
     return (
-        df_importancia.groupby("banda")["Queda_prob"]
+        df_importancia.groupby("banda")["queda_prob"]
         .agg(media="mean", std="std", n="count")
         .sort_values("media", ascending=False)
     )
@@ -126,7 +126,7 @@ def figura_comparacao_bandas(
     cada banda entre os dois datasets
     '''
 
-    fig, ax = plt.subplots(figzise=(10,6))
+    fig, ax = plt.subplots(figsize=(10,6))
     x = np.arange(len(tabela_comparacao))
     largura = 0.35
 
