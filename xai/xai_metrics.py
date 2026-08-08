@@ -68,6 +68,7 @@ def calcula_matricas_xai(
 
     robustness = quantus.MaxSensitivity(
         nr_samples=nr_samples_robustness,
+        normalise=True,
         return_aggregate=False,
         display_progressbar=False,
         disable_warnings=True,
