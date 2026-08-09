@@ -28,7 +28,7 @@ def _normaliza_mapa(attr: torch.Tensor) -> np.ndarray:
     o que seria mostrado visualmente numa figura
     '''
 
-    mapa = attr.squeeze(0).detach().abs().sum(dim=0).numpy()
+    mapa = attr.squeeze(0).detach().abs().sum(dim=0).cpu().numpy()
     mini, maxi = mapa.min(), mapa.max()
     if maxi - mini < 1e-12:
         return np.zeros_like(mapa)
