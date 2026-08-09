@@ -63,11 +63,13 @@ def gerar_atribuicao(
 
     elif metodo == "occlusion":
         occ = Occlusion(modelo)
+
         attr = occ.attribute(
-            input_tensor, 
-            target=target_class, 
-            sliding_window_shapes=(3, 16, 16), 
-            strides=(3, 8, 8)
+            input_tensor,
+            target=target_class,
+            sliding_window_shapes=(3, 32, 32),
+            strides=(3, 16, 16),
+            perturbations_per_eval=16,
         )
     else:
         raise ValueError(f"Método {metodo} não suportado, escolha entre 'gradcam', 'ig', ou 'occlusion'.")
