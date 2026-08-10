@@ -50,6 +50,39 @@ _NOME_DISPLAY_BRANCH = {
     for nome, cenario_auto in BRANCH_PARA_CENARIO_INDIVIDUAL.items()
 }
 
+def preparar_mapa_ig(attr: torch.Tensor, percentile=90):
+    """
+    Prepara Integrated Gradients para visualização.
+
+    Mantém apenas os pixels mais importantes segundo
+    a magnitude da atribuição.
+    """
+
+    mapa = attr.detach().cpu().numpy()[0]
+
+    # [C, H, W] -> importância por pixel
+    # magnitude da atribuição, sem cancelar sinais entre canais
+    if mapa.ndim == 3:
+        mapa = np.abs(mapa).mean(axis=0)
+    else:
+        mapa = np.abs(mapa)
+
+    # Normaliza
+    max_val = mapa.max()
+    if max_val > 0:
+        mapa = mapa / max_val
+
+    # Mantém somente os pixels acima do percentil
+    limiar = np.percentile(mapa, percentile)
+
+    mapa_filtrado = np.where(
+        mapa >= limiar,
+        mapa,
+        0
+    )
+
+    return mapa_filtrado
+
 def _heatmap_unico(
     modelo: torch.nn.Module,
     input_tensor: torch.Tensor,
@@ -62,6 +95,10 @@ def _heatmap_unico(
 
     camada = obter_camada_alvo(modelo) if metodo == "gradcam" else None
     attr = gerar_atribuicao(modelo, input_tensor, target_class, camada_alvo=camada, metodo=metodo)
+
+    if metodo == "ig":
+        return preparar_mapa_ig(attr, percentile=90)
+    
     mapa = attr.detach().cpu().numpy()[0]
     return mapa.mean(axis=0) if mapa.ndim == 3 else mapa
 
