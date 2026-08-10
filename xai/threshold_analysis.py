@@ -95,11 +95,19 @@ def _heatmap_unico(
 
     camada = obter_camada_alvo(modelo) if metodo == "gradcam" else None
     attr = gerar_atribuicao(modelo, input_tensor, target_class, camada_alvo=camada, metodo=metodo)
+    mapa = attr.detach().cpu().numpy()[0]
 
     if metodo == "ig":
-        return preparar_mapa_ig(attr, percentile=90)
+        mapa = np.abs(mapa).mean(axis=0)
+
+        # Normalização
+        max_val = mapa.max()
+
+        if max_val > 0:
+            mapa = mapa / max_val
+
+        return mapa
     
-    mapa = attr.detach().cpu().numpy()[0]
     return mapa.mean(axis=0) if mapa.ndim == 3 else mapa
 
 def similaridade_ssim(

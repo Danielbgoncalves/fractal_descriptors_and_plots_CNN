@@ -484,6 +484,7 @@ ATENÇÃO:
 import os
 import time
 import traceback
+import numpy as np
 from datetime import datetime
 
 import torch
@@ -859,7 +860,7 @@ def carregar_dataset(cfg):
 
 def etapa_heatmaps_exemplo(
     cfg,
-    dataset,
+    dataset,    
     metodo,
 ):
 
@@ -928,11 +929,31 @@ def etapa_heatmaps_exemplo(
         )
 
         ax.imshow(fundo)
-        ax.imshow(
-            mapa,
-            cmap="jet",
-            alpha=0.5,
-        )
+        if metodo == "ig":
+
+            limiar = np.percentile(mapa, 95)
+
+            
+            alpha = np.where(
+                mapa >= limiar,
+                0.8,
+                0.0
+            )
+
+            ax.imshow(
+                mapa,
+                cmap="jet",
+                alpha=alpha,
+                vmin=limiar,
+                vmax=mapa.max(),
+            )
+
+        else:
+            ax.imshow(
+                mapa,
+                cmap="jet",
+                alpha=0.5,
+            )
 
         ax.set_title(
             nome_branch,
