@@ -542,6 +542,13 @@ from xai.comparacao_datasets import (
     figura_comparacao_bandas,
 )
 
+from xai.comparacao_grupos_descritores import (
+    importancia_por_grupo_dataset,
+    resumo_importancia_por_grupo,
+    comparar_importancia_por_grupo_entre_datasets,
+    figura_comparacao_grupos,
+)
+
 from xai.sanity_check import (
     rodar_sanity_check_todos_branches,
     plotar_curva_sanidade,
@@ -611,7 +618,12 @@ N_AMOSTRAS_XAI_METRICS_OCCLUSION = None  # None = todas as amostras disponíveis
 
 N_AMOSTRAS_COMPARACAO_ARQ = 20
 
-N_AMOSTRAS_COMPARACAO_DATASETS = 6
+N_AMOSTRAS_COMPARACAO_DATASETS = 50
+
+# Quantidade de amostras para a comparação entre datasets
+# considerando a influência dos grupos completos de descritores.
+# Cada grupo é ocluído como cruz (todas as linhas + todas as colunas).
+N_AMOSTRAS_COMPARACAO_DATASETS_GRUPOS = 50
 
 N_AMOSTRAS_SEED_AGG_POR_CATEGORIA = 2
 
@@ -738,6 +750,11 @@ def criar_estrutura_pastas():
 
     os.makedirs(
         os.path.join(RAIZ_SAIDA, "comparacao_datasets"),
+        exist_ok=True,
+    )
+
+    os.makedirs(
+        os.path.join(RAIZ_SAIDA, "comparacao_datasets_grupos"),
         exist_ok=True,
     )
 
@@ -1620,6 +1637,138 @@ def etapa_comparacao_datasets(
         plt.close(fig)
 
 
+
+# ============================================================
+# COMPARAÇÃO ENTRE DATASETS — GRUPOS DE DESCRITORES
+# ============================================================
+
+def etapa_comparacao_datasets_grupos(
+    datasets_cfg,
+    datasets_obj,
+):
+    """
+    Compara a influência dos 9 grupos de descritores do RecPlot
+    entre os datasets.
+
+    Diferentemente da comparação antiga por banda/quadrante,
+    esta análise oclui cada grupo como uma CRUZ:
+        - todas as linhas do grupo;
+        - todas as colunas do grupo.
+
+    Assim, a medida representa a influência do grupo completo,
+    incluindo suas interações com os demais grupos.
+
+    A etapa é independente da comparação_datasets atual e possui
+    checkpoint próprio no main().
+    """
+
+    out_dir = os.path.join(
+        RAIZ_SAIDA,
+        "comparacao_datasets_grupos",
+    )
+
+    os.makedirs(out_dir, exist_ok=True)
+
+    resumos = {}
+
+    # Os grupos de descritores pertencem ao RecPlot.
+    for nome_branch in [
+        "mobilenet_recplot",
+        "effnet_recplot",
+    ]:
+
+        resumos[nome_branch] = {}
+
+        for cfg, dataset in zip(
+            datasets_cfg,
+            datasets_obj,
+        ):
+
+            n_disponivel = min(
+                N_AMOSTRAS_COMPARACAO_DATASETS_GRUPOS,
+                len(dataset),
+            )
+
+            log(
+                f"[GRUPOS] {nome_branch} / "
+                f"{cfg['nome']}: {n_disponivel} amostras, "
+                f"{len(SEEDS)} seeds, 9 grupos"
+            )
+
+            df_importancia = importancia_por_grupo_dataset(
+                nome_branch,
+                dataset,
+                list(range(n_disponivel)),
+                cfg["num_classes"],
+                seeds=SEEDS,
+                models_dir=cfg["models_dir"],
+                device=DEVICE,
+            )
+
+            df_importancia.to_csv(
+                os.path.join(
+                    out_dir,
+                    f"importancia_grupos_"
+                    f"{nome_branch}_"
+                    f"{cfg['nome']}.csv",
+                ),
+                index=False,
+            )
+
+            df_resumo = resumo_importancia_por_grupo(
+                df_importancia
+            )
+
+            df_resumo.to_csv(
+                os.path.join(
+                    out_dir,
+                    f"resumo_grupos_"
+                    f"{nome_branch}_"
+                    f"{cfg['nome']}.csv",
+            ),
+            )
+
+            resumos[nome_branch][cfg["nome"]] = df_resumo
+
+        nome_a = datasets_cfg[0]["nome"]
+        nome_b = datasets_cfg[1]["nome"]
+
+        tabela = comparar_importancia_por_grupo_entre_datasets(
+            resumos[nome_branch][nome_a],
+            resumos[nome_branch][nome_b],
+            nome_a=nome_a,
+            nome_b=nome_b,
+        )
+
+        tabela.to_csv(
+            os.path.join(
+                out_dir,
+                f"comparacao_grupos_"
+                f"{nome_branch}_"
+                f"{nome_a}_vs_{nome_b}.csv",
+            )
+        )
+
+        fig = figura_comparacao_grupos(
+            tabela,
+            nome_a,
+            nome_b,
+        )
+
+        fig.savefig(
+            os.path.join(
+                out_dir,
+                f"figura_grupos_"
+                f"{nome_branch}_"
+                f"{nome_a}_vs_{nome_b}.png",
+            ),
+            dpi=150,
+        )
+
+        import matplotlib.pyplot as plt
+        plt.close(fig)
+
+
 # ============================================================
 # MAIN
 # ============================================================
@@ -1825,6 +1974,19 @@ def main():
         "comparacao_datasets",
         lambda:
             etapa_comparacao_datasets(
+                DATASETS,
+                datasets_obj,
+            ),
+    )
+
+    # ========================================================
+    # COMPARAÇÃO ENTRE DATASETS — GRUPOS DE DESCRITORES
+    # ========================================================
+
+    rodar_etapa(
+        "comparacao_datasets_grupos",
+        lambda:
+            etapa_comparacao_datasets_grupos(
                 DATASETS,
                 datasets_obj,
             ),
