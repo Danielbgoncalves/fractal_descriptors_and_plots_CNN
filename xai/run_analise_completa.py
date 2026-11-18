@@ -550,8 +550,7 @@ from xai.comparacao_grupos_descritores import (
 )
 
 from xai.sanity_check import (
-    rodar_sanity_check_todos_branches,
-    plotar_curva_sanidade,
+    executar_sanity_check_dataset
 )
 
 
@@ -597,6 +596,11 @@ N_CONFIANTES = 8
 # Para GradCAM e IG:
 # None = todas as amostras disponíveis.
 N_AMOSTRAS_XAI_METRICS = None
+
+# Sanity check: número de imagens sorteadas por classe verdadeira.
+# A mesma seleção será usada em todas as seeds, branches e métodos.
+N_AMOSTRAS_SANITY_POR_CLASSE = 5
+SEED_SELECAO_SANITY = 2026
 
 # ------------------------------------------------------------
 # PARÂMETRO ESPECÍFICO PARA OCCLUSION
@@ -1421,99 +1425,29 @@ def etapa_comparacao_arquiteturas(
 # ============================================================
 # SANITY CHECK
 # ============================================================
+def etapa_sanity_check(cfg, dataset):
 
-def etapa_sanity_check(
-    cfg,
-    dataset,
-    metodo,
-):
-
-    branches = (
-        carregar_todos_os_branches(
-            SEED_FIXA_EXEMPLOS,
-            cfg["num_classes"],
-            models_dir=cfg["models_dir"],
-            device=DEVICE,
-        )
-    )
-
-    img_orig, img_rec, label = (
-        dataset[SAMPLE_FIXA_EXEMPLO]
-    )
-
-    target_class = (
-        int(label.item())
-        if isinstance(label, torch.Tensor)
-        else int(label)
-    )
-
-    resultados = (
-        rodar_sanity_check_todos_branches(
-            branches,
-            img_orig,
-            img_rec,
-            target_class,
-            metodo=metodo,
-        )
-    )
+    df_predicoes = pd.read_csv(cfg["predicoes_csv"])
 
     out_dir = os.path.join(
         RAIZ_SAIDA,
         cfg["nome"],
-        "sanity_check",
-        metodo,
+        "sanity_check_v2",
     )
 
-    linhas = []
-
-    for (
-        nome_branch,
-        lista,
-    ) in resultados.items():
-
-        for r in lista:
-
-            linhas.append(
-                {
-                    "branch": nome_branch,
-                    **r,
-                }
-            )
-
-    pd.DataFrame(linhas).to_csv(
-        os.path.join(
-            out_dir,
-            "sanity_check.csv",
-        ),
-        index=False,
+    executar_sanity_check_dataset(
+        dataset=dataset,
+        df_predicoes=df_predicoes,
+        dataset_nome=cfg["nome"],
+        class_names=cfg["classes"],
+        seeds=SEEDS,
+        models_dir=cfg["models_dir"],
+        output_dir=out_dir,
+        metodos=METODOS_SANITY_CHECK,
+        n_por_classe=N_AMOSTRAS_SANITY_POR_CLASSE,
+        random_state=SEED_SELECAO_SANITY,
+        device=DEVICE,
     )
-
-    import matplotlib.pyplot as plt
-
-    for metrica in (
-        "spearman",
-        "ssim",
-    ):
-
-        fig = plotar_curva_sanidade(
-            resultados,
-            metrica=metrica,
-            titulo=(
-                f"{cfg['nome']} — "
-                f"sanity check ({metodo}) — "
-                f"{metrica}"
-            ),
-        )
-
-        fig.savefig(
-            os.path.join(
-                out_dir,
-                f"curva_{metrica}.png",
-            ),
-            dpi=150,
-        )
-
-        plt.close(fig)
 
 
 # ============================================================
@@ -1951,20 +1885,11 @@ def main():
         # SANITY CHECK
         # ====================================================
 
-        for metodo in METODOS_SANITY_CHECK:
-
-            rodar_etapa(
-                f"{nome}__sanity_check__{metodo}",
-                lambda
-                cfg=cfg,
-                dataset=dataset,
-                metodo=metodo:
-                    etapa_sanity_check(
-                        cfg,
-                        dataset,
-                        metodo,
-                    ),
-            )
+        rodar_etapa(
+            f"{nome}__sanity_check_v2",
+            lambda cfg=cfg, dataset=dataset:
+                etapa_sanity_check(cfg, dataset),
+        )
 
     # ========================================================
     # COMPARAÇÃO ENTRE DATASETS
