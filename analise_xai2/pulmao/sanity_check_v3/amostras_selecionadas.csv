@@ -1,0 +1,16 @@
+sample,y_true,true_class_name
+0,0,aca_md
+2,0,aca_md
+6,0,aca_md
+10,0,aca_md
+11,0,aca_md
+26,1,nor
+37,1,nor
+39,1,nor
+44,1,nor
+46,1,nor
+47,2,scc_md
+48,2,scc_md
+49,2,scc_md
+55,2,scc_md
+57,2,scc_md

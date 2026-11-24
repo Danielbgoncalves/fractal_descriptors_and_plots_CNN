@@ -1,0 +1,11 @@
+sample,y_true,true_class_name
+0,0,healthy
+3,0,healthy
+8,0,healthy
+13,0,healthy
+15,0,healthy
+29,1,severe
+38,1,severe
+39,1,severe
+43,1,severe
+45,1,severe
