@@ -1,0 +1,13 @@
+dataset,method,branch,auc_spearman_mean,auc_spearman_std,auc_ssim_mean,auc_ssim_std,n_seeds,n_samples_mean
+displasia,gradcam,effnet_orig,,,,,8,10.0
+displasia,gradcam,effnet_recplot,,,,,8,10.0
+displasia,gradcam,mobilenet_orig,0.20081095214022185,0.14448513981411928,0.2936856272995937,0.018934158572364954,8,10.0
+displasia,gradcam,mobilenet_recplot,0.11956427502764931,0.05212162452329773,0.29462645927041525,0.022499572881056657,8,10.0
+displasia,ig,effnet_orig,,,,,8,10.0
+displasia,ig,effnet_recplot,,,,,8,10.0
+displasia,ig,mobilenet_orig,0.39160658111815927,0.005498012557615716,0.4473957316063203,0.015350075959241817,8,10.0
+displasia,ig,mobilenet_recplot,0.6529719547303109,0.0038926541127990897,0.49307483495391946,0.01364696958776846,8,10.0
+displasia,occlusion,effnet_orig,,,,,8,10.0
+displasia,occlusion,effnet_recplot,,,,,8,10.0
+displasia,occlusion,mobilenet_orig,0.11646031962963793,0.028826403788901337,0.3542638375342961,0.007721973075142164,8,10.0
+displasia,occlusion,mobilenet_recplot,0.13703514853349058,0.02356451501069414,0.34904317799289675,0.00956669833087367,8,10.0

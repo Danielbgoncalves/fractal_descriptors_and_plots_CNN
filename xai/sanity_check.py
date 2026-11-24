@@ -376,7 +376,7 @@ def _calcular_auc(df: pd.DataFrame):
                 and np.all(np.isfinite(valores_metrica))
             )
             linha[f"auc_{metrica}"] = (
-                float(np.trapz(valores_metrica, esperado)) if completo else np.nan
+                float(np.trapezoid(valores_metrica, esperado)) if completo else np.nan
             )
             linha[f"auc_{metrica}_valid"] = bool(completo)
             linha[f"n_{metrica}_valid"] = int(np.isfinite(valores_metrica).sum())

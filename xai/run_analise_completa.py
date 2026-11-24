@@ -1432,7 +1432,7 @@ def etapa_sanity_check(cfg, dataset):
     out_dir = os.path.join(
         RAIZ_SAIDA,
         cfg["nome"],
-        "sanity_check_v2",
+        "sanity_check_v3",
     )
 
     executar_sanity_check_dataset(
@@ -1886,7 +1886,7 @@ def main():
         # ====================================================
 
         rodar_etapa(
-            f"{nome}__sanity_check_v2",
+            f"{nome}__sanity_check_v3",
             lambda cfg=cfg, dataset=dataset:
                 etapa_sanity_check(cfg, dataset),
         )
