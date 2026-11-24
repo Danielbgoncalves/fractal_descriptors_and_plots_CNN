@@ -59,14 +59,9 @@ def _blocos_randomizacao(modelo: torch.nn.Module):
     return blocos
 
 
-def _para_heatmap_2d(attr: torch.Tensor) -> np.ndarray:
-    """
-    Converte atribuições (1,C,H,W) em mapa 2D de magnitude e normaliza
-    individualmente para [0,1]. Para IG, a magnitude é usada, sem preservar
-    o sinal das atribuições.
-    """
+def _para_heatmap_2d(attr: torch.Tensor) -> tuple[np.ndarray, dict]:
+    """Gera mapa 2D e registra magnitude antes da normalização min-max."""
     mapa = attr.detach().squeeze(0)
-
     if mapa.ndim == 3:
         mapa = mapa.abs().sum(dim=0)
     elif mapa.ndim != 2:
@@ -74,15 +69,21 @@ def _para_heatmap_2d(attr: torch.Tensor) -> np.ndarray:
 
     mapa = mapa.float().cpu().numpy()
     mapa = np.nan_to_num(mapa, nan=0.0, posinf=0.0, neginf=0.0)
-
-    minimo = float(mapa.min())
-    maximo = float(mapa.max())
+    minimo, maximo = float(mapa.min()), float(mapa.max())
     amplitude = maximo - minimo
-
+    estatisticas = {
+        "min": minimo, "max": maximo, "range": amplitude,
+        "mean": float(np.mean(mapa)), "std": float(np.std(mapa)),
+        "l1": float(np.sum(np.abs(mapa))),
+        "l2": float(np.linalg.norm(mapa.ravel(), ord=2)),
+        "max_abs": float(np.max(np.abs(mapa))),
+        "flat": bool(amplitude < 1e-12),
+    }
     if amplitude < 1e-12:
-        return np.zeros_like(mapa, dtype=np.float32)
-
-    return ((mapa - minimo) / amplitude).astype(np.float32)
+        normalizado = np.zeros_like(mapa, dtype=np.float32)
+    else:
+        normalizado = ((mapa - minimo) / amplitude).astype(np.float32)
+    return normalizado, estatisticas
 
 
 def _calcular_similaridades(
@@ -146,18 +147,14 @@ def teste_rand_em_cascata(
     if entrada.ndim == 3:
         entrada = entrada.unsqueeze(0)
 
-    def atribuicao(modelo: torch.nn.Module) -> np.ndarray:
+    def atribuicao(modelo: torch.nn.Module):
         camada = obter_camada(modelo) if metodo == "gradcam" else None
         attr = gerar_atribuicao(
-            modelo,
-            entrada,
-            int(target_class),
-            camada_alvo=camada,
-            metodo=metodo,
+            modelo, entrada, int(target_class), camada_alvo=camada, metodo=metodo,
         )
         return _para_heatmap_2d(attr)
 
-    mapa_referencia = atribuicao(modelo_treinado)
+    mapa_referencia, magnitude_referencia = atribuicao(modelo_treinado)
     desvio_referencia = float(np.std(mapa_referencia))
 
     rho_ref, ssim_ref = _calcular_similaridades(
@@ -176,8 +173,10 @@ def teste_rand_em_cascata(
         "ssim": 1.0 if np.isfinite(ssim_ref) else np.nan,
         "reference_map_std": desvio_referencia,
         "current_map_std": desvio_referencia,
-        "reference_map_flat": bool(desvio_referencia < 1e-12),
-        "current_map_flat": bool(desvio_referencia < 1e-12),
+        "reference_map_flat": magnitude_referencia["flat"],
+        "current_map_flat": magnitude_referencia["flat"],
+        **{f"reference_magnitude_{k}": v for k, v in magnitude_referencia.items()},
+        **{f"current_magnitude_{k}": v for k, v in magnitude_referencia.items()},
     }]
 
     # Isola o estado aleatório para que cada cascata seja reproduzível
@@ -202,7 +201,7 @@ def teste_rand_em_cascata(
             _reinicializar_bloco(modulo)
             modelo_randomizado.eval()
 
-            mapa_atual = atribuicao(modelo_randomizado)
+            mapa_atual, magnitude_atual = atribuicao(modelo_randomizado)
             desvio_atual = float(np.std(mapa_atual))
             rho, valor_ssim = _calcular_similaridades(
                 mapa_referencia,
@@ -220,8 +219,10 @@ def teste_rand_em_cascata(
                 "ssim": valor_ssim,
                 "reference_map_std": desvio_referencia,
                 "current_map_std": desvio_atual,
-                "reference_map_flat": bool(desvio_referencia < 1e-12),
-                "current_map_flat": bool(desvio_atual < 1e-12),
+                "reference_map_flat": magnitude_referencia["flat"],
+                "current_map_flat": magnitude_atual["flat"],
+                **{f"reference_magnitude_{k}": v for k, v in magnitude_referencia.items()},
+                **{f"current_magnitude_{k}": v for k, v in magnitude_atual.items()},
             })
 
     return resultados
@@ -346,24 +347,39 @@ def _resumir_curvas(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _calcular_auc(df: pd.DataFrame):
-    """Calcula AUC da curva de similaridade por imagem e seed."""
+    """Calcula AUC somente quando todos os pontos da curva são válidos."""
     chaves = ["dataset", "method", "branch", "seed", "sample"]
-    linhas = []
+    chaves_grade = ["dataset", "method", "branch", "seed"]
+    grades = {}
+    for valores, grupo in df.groupby(chaves_grade, dropna=False):
+        grades[valores] = np.sort(grupo["progress"].dropna().astype(float).unique())
 
-    for valores, grupo in df.groupby(chaves):
+    linhas = []
+    for valores, grupo in df.groupby(chaves, dropna=False):
         grupo = grupo.sort_values("progress")
         linha = dict(zip(chaves, valores))
-
+        esperado = grades.get(tuple(linha[k] for k in chaves_grade), np.array([]))
+        progressos = grupo["progress"].to_numpy(dtype=float)
+        linha["n_points_expected"] = len(esperado)
+        linha["n_points_observed"] = len(grupo)
+        linha["progress_complete"] = bool(
+            len(esperado) >= 2
+            and len(progressos) == len(esperado)
+            and np.all(np.isfinite(progressos))
+            and np.allclose(progressos, esperado, rtol=0.0, atol=1e-12)
+        )
         for metrica in ("spearman", "ssim"):
-            validos = grupo[["progress", metrica]].dropna()
-            if len(validos) >= 2:
-                linha[f"auc_{metrica}"] = float(np.trapz(
-                    validos[metrica].to_numpy(),
-                    validos["progress"].to_numpy(),
-                ))
-            else:
-                linha[f"auc_{metrica}"] = np.nan
-
+            valores_metrica = grupo[metrica].to_numpy(dtype=float)
+            completo = (
+                linha["progress_complete"]
+                and len(valores_metrica) == len(esperado)
+                and np.all(np.isfinite(valores_metrica))
+            )
+            linha[f"auc_{metrica}"] = (
+                float(np.trapz(valores_metrica, esperado)) if completo else np.nan
+            )
+            linha[f"auc_{metrica}_valid"] = bool(completo)
+            linha[f"n_{metrica}_valid"] = int(np.isfinite(valores_metrica).sum())
         linhas.append(linha)
 
     auc_amostra = pd.DataFrame(linhas)
@@ -519,6 +535,13 @@ def executar_sanity_check_dataset(
 
             predicoes = _indice_predicoes(df_predicoes, seed, branch)
             tipo_entrada = BRANCH_FILES[branch][1]
+            # Compartilha a mesma sequência de pesos randomizados entre todas
+            # as imagens e métodos desta seed do modelo x branch.
+            seed_randomizacao = (
+                random_state
+                + int(seed) * 1_000_003
+                + list(BRANCH_FILES).index(branch) * 101
+            ) % (2**31 - 1)
 
             for indice in amostras:
                 img_orig, img_rec, label = cache[indice]
@@ -561,23 +584,21 @@ def executar_sanity_check_dataset(
                         f"[SANITY] {dataset_nome} | seed={seed} | "
                         f"{branch} | sample={indice} | {metodo}"
                     )
-
+                    metadata_com_seed = {
+                        **metadata,
+                        "randomization_seed": int(seed_randomizacao),
+                    }
                     resultados.extend(
                         teste_rand_em_cascata(
                             modelo_treinado=modelo,
                             input_tensor=entrada,
                             target_class=y_pred,
                             metodo=metodo,
-                            metadata=metadata,
-                            random_state=(
-                                random_state
-                                + int(seed) * 1_000_003
-                                + int(indice) * 10_007
-                                + list(BRANCH_FILES).index(branch) * 101
-                                + list(metodos).index(metodo)
-                            ) % (2**31 - 1),
+                            metadata=metadata_com_seed,
+                            random_state=seed_randomizacao,
                         )
                     )
+
 
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
@@ -597,30 +618,47 @@ def executar_sanity_check_dataset(
         index=False,
     )
 
-    # Análises complementares: diferenças entre classes e entre acertos/erros.
+    # Agrega imagens dentro de cada seed antes de resumir entre seeds.
     for coluna, nome_arquivo in (
         ("true_class_name", "resumo_por_classe.csv"),
         ("correct", "resumo_por_correcao.csv"),
     ):
-        agrupamento = (
-            df.groupby(
-                ["dataset", "method", "branch", coluna, "step", "block", "progress"],
-                dropna=False,
-            )
+        chaves_seed = [
+            "dataset", "method", "branch", coluna, "seed",
+            "step", "block", "progress",
+        ]
+        por_seed = (
+            df.groupby(chaves_seed, dropna=False)
             .agg(
-                spearman_mean=("spearman", "mean"),
-                spearman_std=("spearman", "std"),
-                ssim_mean=("ssim", "mean"),
-                ssim_std=("ssim", "std"),
+                spearman_seed=("spearman", "mean"),
+                ssim_seed=("ssim", "mean"),
                 n_images=("sample", "nunique"),
-                n_observations=("sample", "count"),
+                n_spearman_valid=("spearman", "count"),
+                n_ssim_valid=("ssim", "count"),
             )
             .reset_index()
         )
-        agrupamento.to_csv(
-            os.path.join(output_dir, nome_arquivo),
-            index=False,
+        chaves_resumo = [
+            "dataset", "method", "branch", coluna, "step", "block", "progress",
+        ]
+        agrupamento = (
+            por_seed.groupby(chaves_resumo, dropna=False)
+            .agg(
+                spearman_mean=("spearman_seed", "mean"),
+                spearman_std=("spearman_seed", "std"),
+                spearman_median=("spearman_seed", "median"),
+                ssim_mean=("ssim_seed", "mean"),
+                ssim_std=("ssim_seed", "std"),
+                ssim_median=("ssim_seed", "median"),
+                n_seeds=("seed", "nunique"),
+                n_images_mean=("n_images", "mean"),
+                n_images_total=("n_images", "sum"),
+                n_spearman_valid=("n_spearman_valid", "sum"),
+                n_ssim_valid=("n_ssim_valid", "sum"),
+            )
+            .reset_index()
         )
+        agrupamento.to_csv(os.path.join(output_dir, nome_arquivo), index=False)
 
     auc_amostra, auc_seed, resumo_auc = _calcular_auc(df)
     auc_amostra.to_csv(
@@ -657,8 +695,10 @@ def executar_sanity_check_dataset(
         "n_samples_selected": len(amostras),
         "random_state_selection": random_state,
         "target_class_rule": "classe predita pelo modelo treinado, fixa na cascata",
+        "randomization_seed_rule": "mesma seed por seed do modelo x branch, compartilhada entre imagens e métodos",
         "randomization_order": "classifier -> features[-1] -> ... -> features[0]",
-        "map_rule": "soma das magnitudes dos canais, normalização min-max por mapa",
+        "map_rule": "soma das magnitudes absolutas dos canais; magnitude bruta registrada antes da normalização min-max",
+        "auc_rule": "AUC somente com todos os estágios presentes e valores finitos; sem atravessar lacunas",
     }])
     configuracao.to_csv(
         os.path.join(output_dir, "configuracao.csv"),
