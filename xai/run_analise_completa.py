@@ -486,6 +486,8 @@ import time
 import traceback
 import numpy as np
 from datetime import datetime
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 import torch
 import pandas as pd
@@ -530,6 +532,7 @@ from xai.comparacao_arquiteturas import (
     comparar_arquiteturas_em_lotes,
     cruzar_com_predicoes,
     resumo_concordancia_vs_ensemble,
+    resumir_comparacao,
 )
 
 from xai.comparacao_datasets import (
@@ -614,8 +617,6 @@ N_AMOSTRAS_XAI_METRICS_OCCLUSION = None  # None = todas as amostras disponíveis
 # ------------------------------------------------------------
 # OUTRAS ANÁLISES
 # ------------------------------------------------------------
-
-N_AMOSTRAS_COMPARACAO_ARQ = 20
 
 N_AMOSTRAS_COMPARACAO_DATASETS = 50
 
@@ -733,7 +734,7 @@ def criar_estrutura_pastas():
         "xai_metricas",
         "limiar",
         "seed_aggregation",
-        "comparacao_arquiteturas",
+        "comparacao_arquiteturas_v2",
         "sanity_check",
     ]
 
@@ -1267,100 +1268,67 @@ def etapa_seed_aggregation(
 # COMPARAÇÃO DE ARQUITETURAS
 # ============================================================
 
-def etapa_comparacao_arquiteturas(
-    cfg,
-    dataset,
-    metodo,
-):
+def etapa_comparacao_arquiteturas(cfg, dataset, metodo):
+    df_pred = pd.read_csv(cfg["predicoes_csv"])
+    indices = range(len(dataset))
+    if not indices:
+        raise ValueError(f"Conjunto de teste vazio para {cfg['nome']}.")
 
-    df_pred = pd.read_csv(
-        cfg["predicoes_csv"]
-    )
-
-    out_dir = os.path.join(
-        RAIZ_SAIDA,
-        cfg["nome"],
-        "comparacao_arquiteturas",
-        metodo,
-    )
-
-    n_disponivel = min(
-        N_AMOSTRAS_COMPARACAO_ARQ,
-        len(dataset),
-    )
-
-    indices = list(
-        range(n_disponivel)
-    )
-
-    for (
-        representacao,
-        cenario_ensemble,
-    ) in CENARIO_ENSEMBLE_POR_REPRESENTACAO.items():
-
-        partes = []
-
-        for seed in SEEDS:
-
-            branches = (
-                carregar_todos_os_branches(
-                    seed,
-                    cfg["num_classes"],
-                    models_dir=cfg["models_dir"],
-                    device=DEVICE,
-                )
+    amostras = pd.DataFrame({
+        "sample": indices,
+        "target_class": [int(item["label"]) for item in dataset.data],
+    })
+    predicoes_por_seed = {}
+    for seed in SEEDS:
+        for representacao, cenario in CENARIO_ENSEMBLE_POR_REPRESENTACAO.items():
+            predicoes = cruzar_com_predicoes(
+                amostras, df_pred, seed, cenario, exigir_todas_amostras=True,
             )
+            if not predicoes["target_class"].eq(predicoes["y_true"]).all():
+                raise ValueError(f"Rótulos de teste divergentes para seed {seed}, {cenario}.")
+            predicoes_por_seed[seed, representacao] = predicoes.drop(columns="target_class")
 
-            df_comp = (
-                comparar_arquiteturas_em_lotes(
-                    branches,
-                    dataset,
-                    indices,
-                    representacao,
-                    metodo=metodo,
-                )
-            )
-
-            df_comp["seed"] = seed
-
-            df_cruzado = (
-                cruzar_com_predicoes(
-                    df_comp,
-                    df_pred,
-                    seed,
-                    cenario_ensemble,
-                )
-            )
-
-            partes.append(
-                df_cruzado
-            )
-
-        df_total = pd.concat(
-            partes,
-            ignore_index=True,
+    partes = {representacao: [] for representacao in CENARIO_ENSEMBLE_POR_REPRESENTACAO}
+    for seed in SEEDS:
+        branches = carregar_todos_os_branches(
+            seed, cfg["num_classes"], models_dir=cfg["models_dir"], device=DEVICE,
         )
-
-        df_total.to_csv(
-            os.path.join(
-                out_dir,
-                f"comparacao_{representacao}.csv",
-            ),
-            index=False,
-        )
-
-        df_resumo = (
-            resumo_concordancia_vs_ensemble(
-                df_total
+        ausentes = [branch for branch in BRANCH_FILES if branches.get(branch) is None]
+        if ausentes:
+            raise FileNotFoundError(f"Modelos indisponíveis na seed {seed}: {', '.join(ausentes)}")
+        for representacao in partes:
+            log(f"[COMPARAÇÃO] {cfg['nome']} | {metodo} | {representacao} | seed {seed}")
+            comparacao = comparar_arquiteturas_em_lotes(
+                branches, dataset, indices, representacao, metodo=metodo,
             )
-        )
-
-        df_resumo.to_csv(
-            os.path.join(
-                out_dir,
-                f"resumo_{representacao}.csv",
+            linhas = comparacao.merge(
+                predicoes_por_seed[seed, representacao], on="sample", validate="one_to_one",
             )
+            if len(linhas) != len(indices) or not linhas["target_class"].eq(linhas["y_true"]).all():
+                raise ValueError(f"Pareamento das atribuições divergente para seed {seed}, {representacao}.")
+            partes[representacao].append(linhas.assign(
+                dataset=cfg["nome"],
+                method=metodo,
+                seed=seed,
+                true_class_name=linhas["y_true"].map(dict(enumerate(cfg["classes"]))),
+            ))
+        del branches
+
+    out_dir = Path(RAIZ_SAIDA) / cfg["nome"] / "comparacao_arquiteturas_v2" / metodo
+    out_dir.mkdir(parents=True, exist_ok=True)
+    totais = {representacao: pd.concat(tabelas, ignore_index=True) for representacao, tabelas in partes.items()}
+    todas = pd.concat(totais.values(), ignore_index=True)
+    with TemporaryDirectory(dir=out_dir) as temporario:
+        pasta = Path(temporario)
+        for representacao, total in totais.items():
+            total.to_csv(pasta / f"comparacao_{representacao}.csv", index=False)
+            resumo_concordancia_vs_ensemble(total).to_csv(pasta / f"resumo_{representacao}.csv")
+        resumir_comparacao(todas).to_csv(pasta / "resumo_geral.csv", index=False)
+        resumir_comparacao(todas, ("y_true", "true_class_name")).to_csv(
+            pasta / "resumo_por_classe.csv", index=False,
         )
+        for arquivo in pasta.iterdir():
+            arquivo.replace(out_dir / arquivo.name)
 
 
 # ============================================================
@@ -1800,7 +1768,7 @@ def main():
         for metodo in METODOS:
 
             rodar_etapa(
-                f"{nome}__comparacao_arquiteturas__{metodo}",
+                f"{nome}__comparacao_arquiteturas_v2__{metodo}",
                 lambda
                 cfg=cfg,
                 dataset=dataset,
