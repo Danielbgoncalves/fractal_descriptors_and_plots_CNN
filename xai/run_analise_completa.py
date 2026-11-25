@@ -521,11 +521,8 @@ from xai.seed_aggregation import (
     seed_mais_representativa,
 )
 
-from xai.threshold_analysis import (
-    analisar_limiar_de_decisao,
-    gerar_figura_exemplos,
-    _heatmap_unico,
-)
+from xai.threshold_analysis import _heatmap_unico
+from xai.threshold_analysis_v2 import executar_limiar_v2
 
 from xai.xai_metrics import xai_metrics_to_csv
 
@@ -590,8 +587,6 @@ METODOS_SEED_AGGREGATION = [
 # ------------------------------------------------------------
 
 MARGEM_MAX = 0.1
-
-N_CONFIANTES = 8
 
 # Para GradCAM e IG:
 # None = todas as amostras disponíveis.
@@ -1085,71 +1080,17 @@ def etapa_xai_metrics(
 # LIMIAR
 # ============================================================
 
-def etapa_limiar(
-    cfg,
-    dataset,
-    metodo,
-):
-
-    out_dir = os.path.join(
-        RAIZ_SAIDA,
+def etapa_limiar_v2(cfg, dataset):
+    executar_limiar_v2(
+        cfg["predicoes_csv"],
+        dataset,
         cfg["nome"],
-        "limiar",
-        metodo,
+        os.path.join(RAIZ_SAIDA, cfg["nome"], "limiar_v2", "gradcam"),
+        cfg["models_dir"],
+        seeds=SEEDS,
+        device=DEVICE,
+        pacientes_csv=cfg.get("pacientes_csv"),
     )
-
-    df_resultado, df_resumo = (
-        analisar_limiar_de_decisao(
-            cfg["predicoes_csv"],
-            dataset,
-            cfg["nome"],
-            cfg["num_classes"],
-            out_dir,
-            seeds=SEEDS,
-            margem_max=MARGEM_MAX,
-            n_confiantes=N_CONFIANTES,
-            models_dir=cfg["models_dir"],
-            metodo=metodo,
-            device=DEVICE,
-        )
-    )
-
-    for nome_branch in BRANCH_FILES:
-
-        try:
-
-            fig = gerar_figura_exemplos(
-                dataset,
-                df_resultado,
-                nome_branch,
-                SEED_FIXA_EXEMPLOS,
-                metodo=metodo,
-                models_dir=cfg["models_dir"],
-                num_classes=cfg["num_classes"],
-                device=DEVICE,
-            )
-
-            fig.savefig(
-                os.path.join(
-                    out_dir,
-                    f"exemplos_{nome_branch}.png",
-                ),
-                dpi=150,
-            )
-
-        except Exception:
-
-            log(
-                f"[AVISO] figura de exemplos "
-                f"falhou para "
-                f"{nome_branch}/{metodo}"
-            )
-
-            log(
-                traceback.format_exc(
-                    limit=1
-                )
-            )
 
 
 # ============================================================
@@ -1828,20 +1769,10 @@ def main():
         # LIMIAR
         # ====================================================
 
-        for metodo in METODOS:
-
-            rodar_etapa(
-                f"{nome}__limiar__{metodo}",
-                lambda
-                cfg=cfg,
-                dataset=dataset,
-                metodo=metodo:
-                    etapa_limiar(
-                        cfg,
-                        dataset,
-                        metodo,
-                    ),
-            )
+        rodar_etapa(
+            f"{nome}__limiar_v2__gradcam",
+            lambda cfg=cfg, dataset=dataset: etapa_limiar_v2(cfg, dataset),
+        )
 
         # ====================================================
         # SEED AGGREGATION
