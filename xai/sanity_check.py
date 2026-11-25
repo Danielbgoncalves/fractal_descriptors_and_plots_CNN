@@ -27,6 +27,7 @@ from skimage.metrics import structural_similarity as ssim
 
 from xai.attributions import gerar_atribuicao
 from xai.loader import BRANCH_FILES, carregar_todos_os_branches, obter_camada_alvo
+from xai.sanity_auc import calcular_auc_por_amostra, resumir_auc
 
 
 BRANCH_TO_SCENARIO = {
@@ -346,76 +347,6 @@ def _resumir_curvas(df: pd.DataFrame) -> pd.DataFrame:
     return resumo
 
 
-def _calcular_auc(df: pd.DataFrame):
-    """Calcula AUC somente quando todos os pontos da curva são válidos."""
-    chaves = ["dataset", "method", "branch", "seed", "sample"]
-    chaves_grade = ["dataset", "method", "branch", "seed"]
-    grades = {}
-    for valores, grupo in df.groupby(chaves_grade, dropna=False):
-        grades[valores] = np.sort(grupo["progress"].dropna().astype(float).unique())
-
-    linhas = []
-    for valores, grupo in df.groupby(chaves, dropna=False):
-        grupo = grupo.sort_values("progress")
-        linha = dict(zip(chaves, valores))
-        esperado = grades.get(tuple(linha[k] for k in chaves_grade), np.array([]))
-        progressos = grupo["progress"].to_numpy(dtype=float)
-        linha["n_points_expected"] = len(esperado)
-        linha["n_points_observed"] = len(grupo)
-        linha["progress_complete"] = bool(
-            len(esperado) >= 2
-            and len(progressos) == len(esperado)
-            and np.all(np.isfinite(progressos))
-            and np.allclose(progressos, esperado, rtol=0.0, atol=1e-12)
-        )
-        for metrica in ("spearman", "ssim"):
-            valores_metrica = grupo[metrica].to_numpy(dtype=float)
-            completo = (
-                linha["progress_complete"]
-                and len(valores_metrica) == len(esperado)
-                and np.all(np.isfinite(valores_metrica))
-            )
-            linha[f"auc_{metrica}"] = (
-                float(np.trapezoid(valores_metrica, esperado)) if completo else np.nan
-            )
-            linha[f"auc_{metrica}_valid"] = bool(completo)
-            linha[f"n_{metrica}_valid"] = int(np.isfinite(valores_metrica).sum())
-        linhas.append(linha)
-
-    auc_amostra = pd.DataFrame(linhas)
-
-    por_seed = (
-        auc_amostra.groupby(
-            ["dataset", "method", "branch", "seed"],
-            dropna=False,
-        )
-        .agg(
-            auc_spearman=("auc_spearman", "mean"),
-            auc_ssim=("auc_ssim", "mean"),
-            n_samples=("sample", "nunique"),
-        )
-        .reset_index()
-    )
-
-    resumo = (
-        por_seed.groupby(
-            ["dataset", "method", "branch"],
-            dropna=False,
-        )
-        .agg(
-            auc_spearman_mean=("auc_spearman", "mean"),
-            auc_spearman_std=("auc_spearman", "std"),
-            auc_ssim_mean=("auc_ssim", "mean"),
-            auc_ssim_std=("auc_ssim", "std"),
-            n_seeds=("seed", "nunique"),
-            n_samples_mean=("n_samples", "mean"),
-        )
-        .reset_index()
-    )
-
-    return auc_amostra, por_seed, resumo
-
-
 def _plotar_curvas(
     resumo: pd.DataFrame,
     dataset_nome: str,
@@ -517,6 +448,7 @@ def executar_sanity_check_dataset(
     )
 
     resultados = []
+    blocos_por_branch_seed = {}
 
     for seed in seeds:
         print(f"[SANITY] {dataset_nome} — carregando seed {seed}")
@@ -533,6 +465,10 @@ def executar_sanity_check_dataset(
                 print(f"[SANITY][AVISO] branch {branch} indisponível na seed {seed}")
                 continue
 
+            blocos_por_branch_seed[branch, int(seed)] = (
+                "trained_model",
+                *(nome_bloco for nome_bloco, _ in _blocos_randomizacao(modelo)),
+            )
             predicoes = _indice_predicoes(df_predicoes, seed, branch)
             tipo_entrada = BRANCH_FILES[branch][1]
             # Compartilha a mesma sequência de pesos randomizados entre todas
@@ -660,7 +596,8 @@ def executar_sanity_check_dataset(
         )
         agrupamento.to_csv(os.path.join(output_dir, nome_arquivo), index=False)
 
-    auc_amostra, auc_seed, resumo_auc = _calcular_auc(df)
+    auc_amostra = calcular_auc_por_amostra(df, blocos_por_branch_seed)
+    auc_seed, resumo_auc = resumir_auc(auc_amostra)
     auc_amostra.to_csv(
         os.path.join(output_dir, "auc_por_amostra.csv"),
         index=False,
@@ -698,7 +635,10 @@ def executar_sanity_check_dataset(
         "randomization_seed_rule": "mesma seed por seed do modelo x branch, compartilhada entre imagens e métodos",
         "randomization_order": "classifier -> features[-1] -> ... -> features[0]",
         "map_rule": "soma das magnitudes absolutas dos canais; magnitude bruta registrada antes da normalização min-max",
-        "auc_rule": "AUC somente com todos os estágios presentes e valores finitos; sem atravessar lacunas",
+        "auc_rule": (
+            "AUC por amostra somente com toda a sequência de blocos da arquitetura "
+            "e valores finitos na métrica. Média por seed antes do resumo final."
+        ),
     }])
     configuracao.to_csv(
         os.path.join(output_dir, "configuracao.csv"),
