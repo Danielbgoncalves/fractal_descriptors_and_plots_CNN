@@ -1,0 +1,3 @@
+dataset,method,tipo_representacao,n_images,n_pairs_total,n_iou_valid,n_ssim_valid,n_seeds_total,n_seeds_iou_valid,n_seeds_ssim_valid,iou_mean,iou_std,ssim_mean,ssim_std
+displasia,occlusion,orig,46,368,368,368,8,8,8,0.0751251813174992,0.014494092520692762,0.3594320249546369,0.013538849939736192
+displasia,occlusion,recplot,46,368,368,368,8,8,8,0.06167001516995616,0.00965508767318913,0.30933662069924855,0.012774682938115702

@@ -1,0 +1,3 @@
+dataset,method,tipo_representacao,n_images,n_pairs_total,n_iou_valid,n_ssim_valid,n_seeds_total,n_seeds_iou_valid,n_seeds_ssim_valid,iou_mean,iou_std,ssim_mean,ssim_std
+pulmao,occlusion,orig,59,472,472,472,8,8,8,0.06930377859488536,0.0077448858321274355,0.3339344064919138,0.005734056652973323
+pulmao,occlusion,recplot,59,472,472,472,8,8,8,0.06140356644310528,0.012393466795478576,0.3220185355840236,0.00630670334139308
