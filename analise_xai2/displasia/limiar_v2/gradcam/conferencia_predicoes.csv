@@ -1,0 +1,17 @@
+dataset,branch,seed,n_observations,n_classes_changed,n_top2_outside_tolerance,max_abs_margin_delta
+displasia,effnet_recplot,7,46,0,11,0.0019187331199645996
+displasia,effnet_recplot,12,46,0,18,0.001491546630859375
+displasia,effnet_recplot,42,46,0,17,0.0034905970096588135
+displasia,effnet_recplot,65,46,0,14,0.002257049083709717
+displasia,effnet_recplot,87,46,0,15,0.0035063922405242365
+displasia,effnet_recplot,93,46,0,18,0.002379715442657526
+displasia,effnet_recplot,107,46,0,14,0.003978326916694641
+displasia,effnet_recplot,121,46,0,9,0.002038240432739258
+displasia,mobilenet_recplot,7,46,0,24,0.00642019510269165
+displasia,mobilenet_recplot,12,46,0,24,0.00294378399848938
+displasia,mobilenet_recplot,42,46,0,20,0.0019289255142213024
+displasia,mobilenet_recplot,65,46,0,24,0.005192011594772339
+displasia,mobilenet_recplot,87,46,0,16,0.002102583646774292
+displasia,mobilenet_recplot,93,46,0,23,0.0019468963146210272
+displasia,mobilenet_recplot,107,46,0,22,0.004961565136909485
+displasia,mobilenet_recplot,121,46,0,19,0.003485172986984253

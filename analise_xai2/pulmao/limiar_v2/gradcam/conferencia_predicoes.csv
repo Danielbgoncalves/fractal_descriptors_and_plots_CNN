@@ -1,0 +1,17 @@
+dataset,branch,seed,n_observations,n_classes_changed,n_top2_outside_tolerance,max_abs_margin_delta
+pulmao,effnet_recplot,7,59,0,21,0.002420932054519598
+pulmao,effnet_recplot,12,59,0,20,0.0039017498493195135
+pulmao,effnet_recplot,42,59,0,25,0.0034254789352416992
+pulmao,effnet_recplot,65,59,0,26,0.001354813575744629
+pulmao,effnet_recplot,87,59,0,31,0.0015530586242675781
+pulmao,effnet_recplot,93,59,0,18,0.0019093453884124756
+pulmao,effnet_recplot,107,59,0,23,0.0013550817966461182
+pulmao,effnet_recplot,121,59,0,20,0.0016419291496276855
+pulmao,mobilenet_recplot,7,59,0,37,0.00416603684425354
+pulmao,mobilenet_recplot,12,59,0,43,0.005795836448669434
+pulmao,mobilenet_recplot,42,59,0,39,0.008705943822860718
+pulmao,mobilenet_recplot,65,59,0,39,0.0029195547103881836
+pulmao,mobilenet_recplot,87,59,0,43,0.004020810127258301
+pulmao,mobilenet_recplot,93,59,0,47,0.005443632602691706
+pulmao,mobilenet_recplot,107,59,0,39,0.004851639270782471
+pulmao,mobilenet_recplot,121,59,0,41,0.004318088293075506
