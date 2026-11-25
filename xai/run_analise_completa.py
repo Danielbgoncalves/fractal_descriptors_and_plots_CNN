@@ -543,8 +543,9 @@ from xai.comparacao_datasets import (
 )
 
 from xai.comparacao_grupos_descritores import (
-    importancia_por_grupo_dataset,
-    resumo_importancia_por_grupo,
+    comparar_preenchimentos,
+    importancia_por_grupo_dataset_v2,
+    resumir_importancia_v2,
     comparar_importancia_por_grupo_entre_datasets,
     figura_comparacao_grupos,
 )
@@ -619,11 +620,6 @@ N_AMOSTRAS_XAI_METRICS_OCCLUSION = None  # None = todas as amostras disponíveis
 # ------------------------------------------------------------
 
 N_AMOSTRAS_COMPARACAO_DATASETS = 50
-
-# Quantidade de amostras para a comparação entre datasets
-# considerando a influência dos grupos completos de descritores.
-# Cada grupo é ocluído como cruz (todas as linhas + todas as colunas).
-N_AMOSTRAS_COMPARACAO_DATASETS_GRUPOS = 50
 
 N_AMOSTRAS_SEED_AGG_POR_CATEGORIA = 2
 
@@ -754,7 +750,7 @@ def criar_estrutura_pastas():
     )
 
     os.makedirs(
-        os.path.join(RAIZ_SAIDA, "comparacao_datasets_grupos"),
+        os.path.join(RAIZ_SAIDA, "comparacao_datasets_grupos_v2"),
         exist_ok=True,
     )
 
@@ -1485,131 +1481,63 @@ def etapa_comparacao_datasets(
 # COMPARAÇÃO ENTRE DATASETS — GRUPOS DE DESCRITORES
 # ============================================================
 
-def etapa_comparacao_datasets_grupos(
-    datasets_cfg,
-    datasets_obj,
-):
-    """
-    Compara a influência dos 9 grupos de descritores do RecPlot
-    entre os datasets.
+def etapa_comparacao_datasets_grupos(datasets_cfg, datasets_obj):
+    import matplotlib.pyplot as plt
 
-    Diferentemente da comparação antiga por banda/quadrante,
-    esta análise oclui cada grupo como uma CRUZ:
-        - todas as linhas do grupo;
-        - todas as colunas do grupo.
-
-    Assim, a medida representa a influência do grupo completo,
-    incluindo suas interações com os demais grupos.
-
-    A etapa é independente da comparação_datasets atual e possui
-    checkpoint próprio no main().
-    """
-
-    out_dir = os.path.join(
-        RAIZ_SAIDA,
-        "comparacao_datasets_grupos",
-    )
-
-    os.makedirs(out_dir, exist_ok=True)
-
-    resumos = {}
-
-    # Os grupos de descritores pertencem ao RecPlot.
-    for nome_branch in [
-        "mobilenet_recplot",
-        "effnet_recplot",
-    ]:
-
-        resumos[nome_branch] = {}
-
-        for cfg, dataset in zip(
-            datasets_cfg,
-            datasets_obj,
-        ):
-
-            n_disponivel = min(
-                N_AMOSTRAS_COMPARACAO_DATASETS_GRUPOS,
-                len(dataset),
-            )
-
-            log(
-                f"[GRUPOS] {nome_branch} / "
-                f"{cfg['nome']}: {n_disponivel} amostras, "
-                f"{len(SEEDS)} seeds, 9 grupos"
-            )
-
-            df_importancia = importancia_por_grupo_dataset(
-                nome_branch,
-                dataset,
-                list(range(n_disponivel)),
-                cfg["num_classes"],
-                seeds=SEEDS,
-                models_dir=cfg["models_dir"],
-                device=DEVICE,
-            )
-
-            df_importancia.to_csv(
-                os.path.join(
-                    out_dir,
-                    f"importancia_grupos_"
-                    f"{nome_branch}_"
-                    f"{cfg['nome']}.csv",
-                ),
-                index=False,
-            )
-
-            df_resumo = resumo_importancia_por_grupo(
-                df_importancia
-            )
-
-            df_resumo.to_csv(
-                os.path.join(
-                    out_dir,
-                    f"resumo_grupos_"
-                    f"{nome_branch}_"
-                    f"{cfg['nome']}.csv",
-            ),
-            )
-
-            resumos[nome_branch][cfg["nome"]] = df_resumo
-
-        nome_a = datasets_cfg[0]["nome"]
-        nome_b = datasets_cfg[1]["nome"]
-
-        tabela = comparar_importancia_por_grupo_entre_datasets(
-            resumos[nome_branch][nome_a],
-            resumos[nome_branch][nome_b],
-            nome_a=nome_a,
-            nome_b=nome_b,
+    partes = []
+    for cfg, dataset in zip(datasets_cfg, datasets_obj):
+        historico = (
+            pd.read_csv(cfg["predicoes_csv"], usecols=["sample", "y_true"])
+            .drop_duplicates()
+            .sort_values("sample")
+            .reset_index(drop=True)
         )
+        amostras = pd.DataFrame({
+            "sample": range(len(dataset)),
+            "y_true": [int(item["label"]) for item in dataset.data],
+        })
+        if not amostras.equals(historico):
+            raise ValueError(f"Imagens ou rótulos de teste divergentes para {cfg['nome']}.")
 
-        tabela.to_csv(
-            os.path.join(
-                out_dir,
-                f"comparacao_grupos_"
-                f"{nome_branch}_"
-                f"{nome_a}_vs_{nome_b}.csv",
+        for branch in ("mobilenet_recplot", "effnet_recplot"):
+            log(f"[GRUPOS V2] {cfg['nome']} | {branch} | {len(dataset)} imagens | {len(SEEDS)} seeds")
+            partes.append(importancia_por_grupo_dataset_v2(
+                cfg["nome"], branch, dataset, cfg["num_classes"], seeds=SEEDS,
+                models_dir=cfg["models_dir"], device=DEVICE,
+            ))
+
+    detalhes = pd.concat(partes, ignore_index=True)
+    por_seed, geral = resumir_importancia_v2(detalhes)
+    _, por_classe = resumir_importancia_v2(detalhes, ("classe_alvo", "nome_classe_alvo"))
+    _, por_acerto = resumir_importancia_v2(detalhes, ("correct",))
+    tabelas = {
+        "resultados_detalhados.csv": detalhes,
+        "resumo_por_semente.csv": por_seed,
+        "resumo_geral.csv": geral,
+        "resumo_por_classe.csv": por_classe,
+        "resumo_por_acerto.csv": por_acerto,
+        "sensibilidade_preenchimento.csv": comparar_preenchimentos(geral),
+    }
+
+    out_dir = Path(RAIZ_SAIDA) / "comparacao_datasets_grupos_v2"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    principal = geral.loc[geral["preenchimento"].eq("media_fora_cruz") & geral["alvo"].eq("predita")]
+    nome_a, nome_b = (cfg["nome"] for cfg in datasets_cfg)
+    with TemporaryDirectory(dir=out_dir) as temporario:
+        pasta = Path(temporario)
+        for nome, tabela in tabelas.items():
+            tabela.to_csv(pasta / nome, index=False)
+        for branch, resumo in principal.groupby("branch"):
+            por_dataset = resumo.set_index("grupo").groupby("dataset")
+            comparacao = comparar_importancia_por_grupo_entre_datasets(
+                por_dataset.get_group(nome_a), por_dataset.get_group(nome_b), nome_a, nome_b,
             )
-        )
-
-        fig = figura_comparacao_grupos(
-            tabela,
-            nome_a,
-            nome_b,
-        )
-
-        fig.savefig(
-            os.path.join(
-                out_dir,
-                f"figura_grupos_"
-                f"{nome_branch}_"
-                f"{nome_a}_vs_{nome_b}.png",
-            ),
-            dpi=150,
-        )
-
-        import matplotlib.pyplot as plt
-        plt.close(fig)
+            comparacao.to_csv(pasta / f"comparacao_grupos_{branch}_{nome_a}_vs_{nome_b}.csv")
+            fig = figura_comparacao_grupos(comparacao, nome_a, nome_b)
+            fig.savefig(pasta / f"figura_grupos_{branch}_{nome_a}_vs_{nome_b}.png", dpi=150)
+            plt.close(fig)
+        for arquivo in pasta.iterdir():
+            arquivo.replace(out_dir / arquivo.name)
 
 
 # ============================================================
@@ -1808,7 +1736,7 @@ def main():
     # ========================================================
 
     rodar_etapa(
-        "comparacao_datasets_grupos",
+        "comparacao_datasets_grupos_v2",
         lambda:
             etapa_comparacao_datasets_grupos(
                 DATASETS,
