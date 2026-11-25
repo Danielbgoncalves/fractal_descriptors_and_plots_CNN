@@ -6,6 +6,7 @@ import pandas as pd
 from xai.case_selection import BRANCH_PARA_CENARIO_INDIVIDUAL
 from xai.threshold_analysis_v2 import (
     BRANCHES,
+    _predicoes_da_inferencia,
     comparar_com_prototipos,
     preparar_predicoes,
     resumir_correlacoes,
@@ -14,6 +15,30 @@ from xai.threshold_analysis_v2 import (
 
 
 class TestLimiarV2(unittest.TestCase):
+    def test_divergencias_do_csv_nao_substituem_as_predicoes_da_inferencia(self):
+        historico = pd.DataFrame({
+            "sample": [0, 1, 2],
+            "y_true": [1, 0, 1],
+            "y_pred": [0, 0, 1],
+            "correct": [False, True, True],
+            "p_top1": [0.80, 0.80, 0.90],
+            "p_top2": [0.20, 0.20, 0.10],
+            "margin": [0.60, 0.60, 0.80],
+        }, index=[14, 28, 30])
+        probabilidades = np.array([[0.48, 0.52], [0.53, 0.47], [0.10, 0.90]])
+        atuais = _predicoes_da_inferencia(historico, probabilidades)
+
+        self.assertEqual(atuais.index.tolist(), historico.index.tolist())
+        self.assertEqual(atuais["y_pred"].tolist(), [1, 0, 1])
+        self.assertEqual(atuais["correct"].tolist(), [True, True, True])
+        np.testing.assert_allclose(atuais["margin"], [0.04, 0.06, 0.80])
+        self.assertEqual(atuais["class_changed"].tolist(), [True, False, False])
+        self.assertEqual(atuais["top2_outside_tolerance"].tolist(), [True, True, False])
+        self.assertEqual(atuais["y_pred_csv"].tolist(), historico["y_pred"].tolist())
+        self.assertEqual(atuais["margin_csv"].tolist(), historico["margin"].tolist())
+        with self.assertRaises(ValueError):
+            _predicoes_da_inferencia(historico, np.full((3, 2), np.nan))
+
     def test_contagens_completas_por_corte_rejeitam_predicoes_ausentes_ou_duplicadas(self):
         df = pd.DataFrame([
             (BRANCH_PARA_CENARIO_INDIVIDUAL[branch], seed, sample, sample, 0, 0.52, 0.48)

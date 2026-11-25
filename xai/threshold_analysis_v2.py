@@ -194,34 +194,70 @@ def resumir_correlacoes(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     return por_seed, resumo
 
 
-def _gerar_mapas(grupo, modelo, entradas, device):
+def _predicoes_da_inferencia(grupo, probabilidades):
+    """Vincula a análise às predições atuais e preserva a referência histórica."""
+    if (
+        probabilidades.ndim != 2
+        or probabilidades.shape[0] != len(grupo)
+        or probabilidades.shape[1] < 2
+        or not np.isfinite(probabilidades).all()
+    ):
+        raise ValueError("A inferência RecPlot retornou probabilidades inválidas.")
+
+    topo = np.sort(probabilidades, axis=1)[:, -2:][:, ::-1]
+    classes = probabilidades.argmax(axis=1)
+    top2_divergente = ~np.isclose(
+        topo, grupo[["p_top1", "p_top2"]].to_numpy(), rtol=1e-3, atol=1e-5
+    ).all(axis=1)
+    historico = grupo.rename(columns={
+        "y_pred": "y_pred_csv",
+        "correct": "correct_csv",
+        "p_top1": "p_top1_csv",
+        "p_top2": "p_top2_csv",
+        "margin": "margin_csv",
+    })
+    return historico.assign(
+        y_pred=classes,
+        correct=grupo["y_true"].eq(classes),
+        p_top1=topo[:, 0],
+        p_top2=topo[:, 1],
+        margin=topo[:, 0] - topo[:, 1],
+        class_changed=grupo["y_pred"].ne(classes),
+        top2_outside_tolerance=top2_divergente,
+    )
+
+
+def _inferir_e_gerar_mapas(grupo, modelo, entradas, device):
     import torch
 
     from xai.attributions import gerar_atribuicao
     from xai.loader import obter_camada_alvo
 
+    entradas_grupo = entradas[grupo["sample"].tolist()]
     with torch.no_grad():
         probabilidades = torch.cat([
             modelo(lote.to(device)).softmax(dim=1).cpu()
-            for lote in entradas.split(16)
+            for lote in entradas_grupo.split(16)
         ]).numpy()
-    melhores = np.sort(probabilidades, axis=1)[:, -2:][:, ::-1]
-    if (
-        not np.array_equal(probabilidades.argmax(axis=1), grupo["y_pred"])
-        or not np.allclose(melhores, grupo[["p_top1", "p_top2"]], rtol=1e-3, atol=1e-5)
-    ):
-        raise ValueError(
-            "Os checkpoints e as imagens de teste não reproduzem as predições registradas "
-            f"para {grupo['branch'].iat[0]}, seed {grupo['seed'].iat[0]}."
+    atuais = _predicoes_da_inferencia(grupo, probabilidades)
+    n_classes = atuais["class_changed"].sum()
+    n_top2 = atuais["top2_outside_tolerance"].sum()
+    if n_classes or n_top2:
+        print(
+            f"[LIMIAR V2][AVISO] {grupo['dataset'].iat[0]} | "
+            f"{grupo['branch'].iat[0]} | seed {grupo['seed'].iat[0]} | "
+            f"{n_classes}/{len(grupo)} classes e {n_top2}/{len(grupo)} pares de "
+            "probabilidades divergem do CSV. A análise usa a inferência atual."
         )
 
     camada = obter_camada_alvo(modelo)
-    return {
+    mapas = {
         row.sample: gerar_atribuicao(
             modelo, entradas[row.sample], row.y_pred, camada_alvo=camada, metodo="gradcam"
         )[0, 0].detach().cpu().numpy()
-        for row in grupo.itertuples(index=False)
+        for row in atuais.itertuples(index=False)
     }
+    return atuais, mapas
 
 
 def _selecionar_exemplos(detalhes, mapas_por_grupo, pacientes):
@@ -285,16 +321,27 @@ def executar_limiar_v2(
         if modelo is None:
             raise FileNotFoundError(caminhos[branch, seed])
         modelo = modelo.to(device).eval()
-        mapas_brutos = _gerar_mapas(grupo, modelo, entradas, device)
-        comparacoes, mapas = comparar_com_prototipos(grupo, mapas_brutos, pacientes, ssim_entre_mapas)
+        atuais, mapas_brutos = _inferir_e_gerar_mapas(grupo, modelo, entradas, device)
+        comparacoes, mapas = comparar_com_prototipos(atuais, mapas_brutos, pacientes, ssim_entre_mapas)
         resultados.append(comparacoes)
         mapas_por_grupo[branch, seed] = mapas
         del modelo, mapas_brutos
 
     detalhes = pd.concat(resultados, ignore_index=True)
     por_seed, correlacoes = resumir_correlacoes(detalhes)
+    conferencia = (
+        detalhes.assign(abs_margin_delta=(detalhes["margin"] - detalhes["margin_csv"]).abs())
+        .groupby(["dataset", "branch", "seed"], as_index=False)
+        .agg(
+            n_observations=("sample", "size"),
+            n_classes_changed=("class_changed", "sum"),
+            n_top2_outside_tolerance=("top2_outside_tolerance", "sum"),
+            max_abs_margin_delta=("abs_margin_delta", "max"),
+        )
+    )
     tabelas = {
         "contagens_predicoes.csv": resumir_grupos(predicoes),
+        "conferencia_predicoes.csv": conferencia,
         "resultados_detalhados.csv": detalhes,
         "resumo_grupos.csv": resumir_grupos(detalhes),
         "correlacoes_por_seed.csv": por_seed,
